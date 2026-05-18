@@ -178,7 +178,12 @@ const Inventory = {
                 pv.color_name,  -- Lấy màu sắc của variant
                 pv.ram_gb,      -- Lấy RAM của variant
                 pv.storage_gb,  -- Lấy bộ nhớ của variant
-                (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id AND is_primary = TRUE LIMIT 1) AS primary_variant_image_url,
+                COALESCE(
+                    (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id AND is_primary = TRUE LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE product_id = p.product_id AND variant_id IS NULL AND is_primary = TRUE LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE product_id = p.product_id AND variant_id IS NULL ORDER BY image_id ASC LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id ORDER BY image_id ASC LIMIT 1)
+                ) AS primary_variant_image_url,
                 ird.import_quantity,
                 ird.unit_import_price
             FROM import_receipt_details ird
@@ -211,7 +216,12 @@ const Inventory = {
                 pv.stock_quantity,
                 b.brand_name,
                 c.category_name,
-                (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id AND is_primary = TRUE LIMIT 1) AS primary_variant_image_url
+                COALESCE(
+                    (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id AND is_primary = TRUE LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE product_id = p.product_id AND variant_id IS NULL AND is_primary = TRUE LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE product_id = p.product_id AND variant_id IS NULL ORDER BY image_id ASC LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id ORDER BY image_id ASC LIMIT 1)
+                ) AS primary_variant_image_url
             FROM product_variants pv
             JOIN products p ON pv.product_id = p.product_id
             LEFT JOIN brands b ON p.brand_id = b.brand_id

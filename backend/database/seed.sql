@@ -30,6 +30,15 @@ ON DUPLICATE KEY UPDATE brand_name = VALUES(brand_name);
 
 -- Insert sample categories
 INSERT INTO categories (category_name, parent_category_id) VALUES
+('Điện thoại', NULL),
+('Laptop', NULL),
+('Tablet', NULL),
+('Smartwatch', NULL),
+('Tai nghe', NULL),
+('Phụ kiện', NULL),
+('Màn hình, Máy in', NULL),
+('Máy cũ, Thu cũ', NULL),
+('Dịch vụ tiện ích', NULL),
 ('Laptop Gaming', NULL),
 ('Laptop Văn Phòng', NULL),
 ('Laptop Đồ Họa', NULL),

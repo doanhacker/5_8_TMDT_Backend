@@ -66,6 +66,7 @@ const getUserWithRoles = async (user) => {
 const authController = {
     // API Đăng ký tài khoản mới
     register: async (req, res) => {
+        let connection;
         try {
             const { email, password, full_name, phone_number } = req.body;
 
@@ -96,9 +97,13 @@ const authController = {
                 });
             }
 
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+
             // 2. Kiểm tra email đã tồn tại chưa
-            const existingUser = await User.findByEmail(normalizedEmail);
+            const existingUser = await User.findByEmail(normalizedEmail, connection);
             if (existingUser) {
+                await connection.rollback();
                 return res.status(409).json({
                     success: false,
                     message: 'Email đã được đăng ký'
@@ -117,35 +122,29 @@ const authController = {
                 password_hash,
                 full_name,
                 phone_number
-            });
+            }, connection);
             console.log('✅ User created with ID:', userId);
 
             // 5. Gán role mặc định (customer = role_id 3)
             console.log('🎭 Assigning role...');
-            try {
-                await User.assignRole(userId, 3);
-                console.log('✅ Role assigned');
-            } catch (roleError) {
-                console.error('❌ Role assignment error:', roleError.message);
-                console.warn('⚠️ Continuing without role assignment');
-            }
+            await User.assignRole(userId, 3, connection);
+            console.log('✅ Role assigned');
 
-            // 6. Tạo JWT token
-            console.log('🔑 Creating JWT token...');
-const token = createAuthToken(userId, normalizedEmail, newUser.token_version || 1);
-            console.log('✅ Token created');
-
-            // 7. Lấy thông tin user vừa tạo
+            // 6. Lấy thông tin user vừa tạo
             console.log('📋 Fetching user info...');
-            const newUser = await User.findById(userId);
+            const newUser = await User.findById(userId, connection);
             
             if (!newUser) {
                 console.error('❌ User not found after creation');
-                return res.status(500).json({
-                    success: false,
-                    message: 'Lỗi khi lấy thông tin user'
-                });
+                throw new Error('Lỗi khi lấy thông tin user');
             }
+
+            await connection.commit();
+
+            // 7. Tạo JWT token
+            console.log('🔑 Creating JWT token...');
+            const token = createAuthToken(userId, normalizedEmail, newUser.token_version || 1);
+            console.log('✅ Token created');
 
             console.log('🎉 Registration successful');
             res.status(201).json({
@@ -157,13 +156,33 @@ const token = createAuthToken(userId, normalizedEmail, newUser.token_version || 
                 }
             });
         } catch (error) {
+            if (connection) {
+                try {
+                    await connection.rollback();
+                } catch (rollbackError) {
+                    console.error('❌ Rollback error:', rollbackError.message);
+                }
+            }
+
             console.error('❌ Register error:', error);
             console.error('Error stack:', error.stack);
+
+            if (error.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Email đã được đăng ký'
+                });
+            }
+
             res.status(500).json({
                 success: false,
                 message: 'Lỗi khi đăng ký tài khoản',
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
+        } finally {
+            if (connection) {
+                connection.release();
+            }
         }
     },
 

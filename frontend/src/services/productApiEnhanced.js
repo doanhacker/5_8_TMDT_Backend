@@ -103,6 +103,7 @@ export const createProduct = async (productData) => {
     formData.append('product_name', productData.product_name || productData.name)
     formData.append('brand_id', productData.brand_id || 1) // Default brand
     formData.append('category_id', productData.category_id || 1) // Default category (laptops)
+    formData.append('device_type', productData.device_type || 'LAPTOP')
     formData.append('description_html', productData.description_html || '<p>Laptop chất lượng cao</p>')
     formData.append('highlight_features', productData.highlight_features || 'Hiệu năng mạnh mẽ')
     
@@ -114,6 +115,30 @@ export const createProduct = async (productData) => {
     }
     if (productData.os) {
       formData.append('os', productData.os)
+    }
+    if (productData.battery_capacity_mah !== undefined) {
+      formData.append('battery_capacity_mah', productData.battery_capacity_mah)
+    }
+    if (productData.refresh_rate_hz !== undefined) {
+      formData.append('refresh_rate_hz', productData.refresh_rate_hz)
+    }
+    if (productData.charging_port) {
+      formData.append('charging_port', productData.charging_port)
+    }
+    if (productData.connectivity) {
+      formData.append('connectivity', productData.connectivity)
+    }
+    if (productData.water_resistance) {
+      formData.append('water_resistance', productData.water_resistance)
+    }
+    if (productData.sensors) {
+      formData.append('sensors', productData.sensors)
+    }
+    if (productData.speaker_type) {
+      formData.append('speaker_type', productData.speaker_type)
+    }
+    if (productData.device_specific_specs && typeof productData.device_specific_specs === 'object') {
+      formData.append('device_specific_specs', JSON.stringify(productData.device_specific_specs))
     }
 
     // Add variants as JSON string
@@ -153,7 +178,9 @@ export const createProduct = async (productData) => {
         statusText: response.statusText,
         data
       })
-      throw new Error(data.error || data.message || `HTTP ${response.status}: ${response.statusText}`)
+      const detailErrors = Array.isArray(data?.errors) ? data.errors.filter(Boolean).join(' | ') : ''
+      const fallbackMessage = data.error || data.message || `HTTP ${response.status}: ${response.statusText}`
+      throw new Error(detailErrors ? `${fallbackMessage}: ${detailErrors}` : fallbackMessage)
     }
 
     console.log('✅ Product created:', data)
@@ -177,11 +204,19 @@ export const updateProduct = async (id, productData) => {
       'product_name',
       'brand_id',
       'category_id',
+      'device_type',
       'description_html',
       'highlight_features',
       'screen_size',
       'weight_kg',
       'os',
+      'battery_capacity_mah',
+      'refresh_rate_hz',
+      'charging_port',
+      'connectivity',
+      'water_resistance',
+      'sensors',
+      'speaker_type',
       'primary_product_image_id',
     ]
 
@@ -193,6 +228,10 @@ export const updateProduct = async (id, productData) => {
 
     if (Array.isArray(productData.delete_image_ids) && productData.delete_image_ids.length > 0) {
       formData.append('delete_image_ids', JSON.stringify(productData.delete_image_ids))
+    }
+
+    if (productData.device_specific_specs && typeof productData.device_specific_specs === 'object') {
+      formData.append('device_specific_specs', JSON.stringify(productData.device_specific_specs))
     }
 
     if (Array.isArray(productData.variants_to_update) && productData.variants_to_update.length > 0) {

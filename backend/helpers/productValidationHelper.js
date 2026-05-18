@@ -12,7 +12,7 @@ const VALID_STATUSES = ['IN_STOCK', 'OUT_OF_STOCK', 'COMING_SOON', 'DISCONTINUED
  */
 const validateProductData = (data, isUpdate = false) => {
     const {
-        product_name, brand_id, category_id,
+        product_name, brand_id, category_id, device_type,
         description_html, highlight_features
     } = data;
     const errors = [];
@@ -34,6 +34,13 @@ const validateProductData = (data, isUpdate = false) => {
     if (category_id !== undefined && (isNaN(parseInt(category_id)) || parseInt(category_id) <= 0)) {
         errors.push('ID danh mục không hợp lệ.');
     }
+    if (device_type !== undefined) {
+        const normalizedDeviceType = String(device_type).trim().toUpperCase();
+        const validDeviceTypes = ['LAPTOP', 'PHONE', 'TABLET', 'WATCH', 'AUDIO', 'ACCESSORY', 'OTHER'];
+        if (!validDeviceTypes.includes(normalizedDeviceType)) {
+            errors.push(`Loại thiết bị không hợp lệ. Chỉ chấp nhận: ${validDeviceTypes.join(', ')}.`);
+        }
+    }
     // description_html và highlight_features có thể là null hoặc chuỗi rỗng, không cần validate chặt chẽ
     return errors;
 };
@@ -45,7 +52,18 @@ const validateProductData = (data, isUpdate = false) => {
  * @returns {string[]} Mảng lỗi (rỗng nếu hợp lệ)
  */
 const validateProductSpecData = (data, isUpdate = false) => {
-    const { screen_size, weight_kg, os } = data;
+    const {
+        screen_size,
+        weight_kg,
+        os,
+        battery_capacity_mah,
+        refresh_rate_hz,
+        charging_port,
+        connectivity,
+        water_resistance,
+        sensors,
+        speaker_type
+    } = data;
     const errors = [];
 
     // --- Validate từng field nếu có trong request ---
@@ -57,6 +75,27 @@ const validateProductSpecData = (data, isUpdate = false) => {
     }
     if (os !== undefined && !os.trim()) {
         errors.push('Hệ điều hành không được để trống.');
+    }
+    if (battery_capacity_mah !== undefined && (isNaN(parseInt(battery_capacity_mah)) || parseInt(battery_capacity_mah) <= 0)) {
+        errors.push('Dung lượng pin không hợp lệ.');
+    }
+    if (refresh_rate_hz !== undefined && (isNaN(parseInt(refresh_rate_hz)) || parseInt(refresh_rate_hz) <= 0)) {
+        errors.push('Tần số quét không hợp lệ.');
+    }
+    if (charging_port !== undefined && !String(charging_port).trim()) {
+        errors.push('Cổng sạc/kết nối không được để trống nếu đã cung cấp.');
+    }
+    if (connectivity !== undefined && !String(connectivity).trim()) {
+        errors.push('Thông tin kết nối không được để trống nếu đã cung cấp.');
+    }
+    if (water_resistance !== undefined && !String(water_resistance).trim()) {
+        errors.push('Khả năng kháng nước không được để trống nếu đã cung cấp.');
+    }
+    if (sensors !== undefined && !String(sensors).trim()) {
+        errors.push('Thông tin cảm biến không được để trống nếu đã cung cấp.');
+    }
+    if (speaker_type !== undefined && !String(speaker_type).trim()) {
+        errors.push('Thông tin loa không được để trống nếu đã cung cấp.');
     }
     return errors;
 };

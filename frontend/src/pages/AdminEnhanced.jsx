@@ -46,6 +46,11 @@ import AdminBranch from "../components/admin/AdminBranch"
 import AdminVouchers from "../components/admin/AdminVouchers"
 import AdminNotifications from "../components/admin/AdminNotifications"
 import AdminCategories from "../components/admin/AdminCategories"
+import {
+  ADMIN_SCOPE_RULES,
+  getAdminScopeByEmail,
+  isProductInScope,
+} from "../utils/adminScope"
 
 const moduleItems = [
   { id: "dashboard", label: "Dashboard", icon: FiBarChart2 },
@@ -77,6 +82,7 @@ const initialStaff = [
 
 const createEmptyProductForm = () => ({
   name: "",
+  deviceType: "LAPTOP",
   sku: "",
   color: "",
   brand: "",
@@ -91,6 +97,14 @@ const createEmptyProductForm = () => ({
   screenSize: "",
   weightKg: "",
   os: "",
+  batteryCapacityMah: "",
+  refreshRateHz: "",
+  chargingPort: "",
+  connectivity: "",
+  waterResistance: "",
+  sensors: "",
+  speakerType: "",
+  deviceSpecificSpecsText: "",
   graphics: "",
   features: [],
   description: "",
@@ -120,9 +134,22 @@ const createEmptyVariantForm = () => ({
   discountPrice: "",
   stock: "",
   status: "IN_STOCK",
+  extraSpecsJsonText: "",
   imageFiles: [],
   imagePreviews: [],
 })
+
+const parseOptionalJsonObject = (value) => {
+  const normalized = String(value || "").trim()
+  if (!normalized) return undefined
+
+  const parsed = JSON.parse(normalized)
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("JSON object expected")
+  }
+
+  return parsed
+}
 
 const splitFeatures = (value) => {
   if (!value) return []
@@ -145,6 +172,10 @@ const getPreferredVariant = (variants = []) => {
 export default function Admin() {
   const { user, loading, isAdmin } = useAuth()
   const navigate = useNavigate()
+  const adminScope = getAdminScopeByEmail(user?.email)
+  const isScopedAdmin = Boolean(adminScope)
+  const scopedRule = adminScope ? ADMIN_SCOPE_RULES[adminScope] : null
+  const scopedDeviceType = scopedRule?.preferredDeviceType || null
 
   const [activeModule, setActiveModule] = useState("dashboard")
 
@@ -210,6 +241,14 @@ export default function Admin() {
     return () => window.clearTimeout(timeoutId)
   }, [productNotice])
 
+  useEffect(() => {
+    if (!isScopedAdmin || !scopedDeviceType) return
+    setProductForm((prev) => ({
+      ...prev,
+      deviceType: scopedDeviceType,
+    }))
+  }, [isScopedAdmin, scopedDeviceType])
+
   const showProductNotice = (type, message) => {
     setProductNotice({ type, message })
   }
@@ -219,7 +258,8 @@ export default function Admin() {
       setLoadingCategories(true)
       const categoriesResponse = await categoryApi.getAllCategories()
       if (categoriesResponse.success && categoriesResponse.data) {
-        setCategories(categoriesResponse.data)
+        const source = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []
+        setCategories(source)
       }
     } catch (error) {
       console.error("Error fetching categories:", error)
@@ -383,13 +423,13 @@ export default function Admin() {
     if (activeModule === "orders" || activeModule === "dashboard") {
       loadOrders()
     }
-    if (activeModule === "inventory") {
+    if (activeModule === "inventory" || activeModule === "dashboard") {
       loadInventory()
     }
-    if (activeModule === "customers") {
+    if (activeModule === "customers" || activeModule === "dashboard") {
       loadCustomers()
     }
-    if (activeModule === "content") {
+    if (activeModule === "content" || activeModule === "dashboard") {
       loadComments()
     }
   }, [activeModule])
@@ -397,14 +437,18 @@ export default function Admin() {
   const lowStockItems = useMemo(() => inventory, [inventory])
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return products
-    return products.filter((product) =>
+    const sourceProducts = isScopedAdmin
+      ? products.filter((product) => isProductInScope(product, adminScope))
+      : products
+
+    if (!searchTerm.trim()) return sourceProducts
+    return sourceProducts.filter((product) =>
       String(product.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(product.brand || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(product.series || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       String(product.id || "").toLowerCase().includes(searchTerm.toLowerCase())
     )
-  }, [products, searchTerm])
+  }, [products, searchTerm, isScopedAdmin, adminScope])
 
   const revenueSummary = useMemo(() => {
     const completed = orders.filter((order) => order.status === "COMPLETED")
@@ -511,10 +555,18 @@ export default function Admin() {
     const autoSpecs = `${baseCpu} | ${baseGraphics} | ${productForm.os}${productForm.weightKg ? ` | ${productForm.weightKg} kg` : ""}`
 
     const normalizedVariants = workingVariants.map((variant, index) => {
+      let parsedVariantExtraSpecs
+      try {
+        parsedVariantExtraSpecs = parseOptionalJsonObject(variant.extraSpecsJsonText)
+      } catch {
+        throw new Error(`JSON thông số mở rộng của phiên bản ${variant.sku || `#${index + 1}`} không hợp lệ`)
+      }
+
       if (index !== (representativeVariantIndex >= 0 ? representativeVariantIndex : 0)) {
         return {
           ...variant,
           status: getVariantStatus(variant.stock, variant.status),
+          extraSpecsJson: parsedVariantExtraSpecs,
         }
       }
 
@@ -531,11 +583,21 @@ export default function Admin() {
         discountPrice: productForm.price ? Number(productForm.price) : variant.discountPrice,
         stock: productForm.stock !== "" ? Number(productForm.stock) : variant.stock,
         status: getVariantStatus(productForm.stock !== "" ? Number(productForm.stock) : variant.stock, variant.status),
+        extraSpecsJson: parsedVariantExtraSpecs,
       }
     })
 
+    let parsedDeviceSpecificSpecs
+    try {
+      parsedDeviceSpecificSpecs = parseOptionalJsonObject(productForm.deviceSpecificSpecsText)
+    } catch {
+      showProductNotice('error', 'JSON thông số riêng theo loại thiết bị không hợp lệ')
+      return
+    }
+
     const payload = {
       name: productForm.name,
+      deviceType: productForm.deviceType,
       sku: productForm.sku,
       color: productForm.color,
       brand: productForm.brand,
@@ -553,6 +615,14 @@ export default function Admin() {
       screenSize: productForm.screenSize,
       weightKg: productForm.weightKg,
       os: productForm.os,
+      batteryCapacityMah: productForm.batteryCapacityMah,
+      refreshRateHz: productForm.refreshRateHz,
+      chargingPort: productForm.chargingPort,
+      connectivity: productForm.connectivity,
+      waterResistance: productForm.waterResistance,
+      sensors: productForm.sensors,
+      speakerType: productForm.speakerType,
+      deviceSpecificSpecs: parsedDeviceSpecificSpecs,
       graphics: baseGraphics,
       features: productForm.features,
       hasAI: productForm.hasAI,
@@ -593,12 +663,8 @@ export default function Admin() {
   }
 
   const handleAddVariant = async () => {
-    if (!variantForm.sku || !variantForm.color || !variantForm.cpu || !variantForm.gpu || !variantForm.ram || !variantForm.storage || !variantForm.originalPrice) {
-      showProductNotice('error', 'Vui lòng điền đầy đủ SKU, màu và thông tin phiên bản')
-      return
-    }
-    if (!variantForm.ramType) {
-      showProductNotice('error', 'Vui lòng chọn loại RAM cho phiên bản')
+    if (!variantForm.sku || !variantForm.color || !variantForm.ram || !variantForm.storage || !variantForm.originalPrice) {
+      showProductNotice('error', 'Vui lòng điền SKU, màu, RAM, ổ cứng và giá gốc cho phiên bản')
       return
     }
     const previewCount = variantForm.imagePreviews?.length || 0
@@ -613,6 +679,18 @@ export default function Admin() {
       discountPrice: variantForm.discountPrice ? Number(variantForm.discountPrice) : null,
       stock: Number(variantForm.stock || 0),
       status: getVariantStatus(variantForm.stock, variantForm.status),
+      extraSpecsJson: (() => {
+        try {
+          return parseOptionalJsonObject(variantForm.extraSpecsJsonText)
+        } catch {
+          return undefined
+        }
+      })(),
+    }
+
+    if (variantForm.extraSpecsJsonText && newVariant.extraSpecsJson === undefined) {
+      showProductNotice('error', 'JSON thông số mở rộng của phiên bản không hợp lệ')
+      return
     }
 
     if (editingVariantIndex >= 0) {
@@ -705,6 +783,7 @@ export default function Admin() {
       setProductForm({
         ...createEmptyProductForm(),
         name: productDetail?.product_name || product.name,
+        deviceType: productDetail?.device_type || "LAPTOP",
         sku: preferredVariant?.sku || "",
         color: preferredVariant?.color_name || "",
         brand_id: product.brand_id || "",
@@ -720,6 +799,16 @@ export default function Admin() {
         screenSize: productDetail?.screen_size != null ? String(productDetail.screen_size) : String(product.screenSize || "").replace(/[^\d.]/g, ""),
         weightKg: productDetail?.weight_kg != null ? String(productDetail.weight_kg) : product.weightKg || "",
         os: String(productDetail?.os || product.os || "").trim(),
+        batteryCapacityMah: productDetail?.battery_capacity_mah != null ? String(productDetail.battery_capacity_mah) : "",
+        refreshRateHz: productDetail?.refresh_rate_hz != null ? String(productDetail.refresh_rate_hz) : "",
+        chargingPort: productDetail?.charging_port || "",
+        connectivity: productDetail?.connectivity || "",
+        waterResistance: productDetail?.water_resistance || "",
+        sensors: productDetail?.sensors || "",
+        speakerType: productDetail?.speaker_type || "",
+        deviceSpecificSpecsText: productDetail?.device_specific_specs
+          ? JSON.stringify(productDetail.device_specific_specs, null, 2)
+          : "",
         graphics: preferredVariant?.gpu || product.graphics,
         features: splitFeatures(productDetail?.highlight_features),
         description: productDetail?.description_html || "",
@@ -752,6 +841,9 @@ export default function Admin() {
           discountPrice: variant.discount_price != null ? Number(variant.discount_price) : null,
           stock: Number(variant.stock_quantity || 0),
           status: variant.status || getVariantStatus(variant.stock_quantity),
+          extraSpecsJsonText: variant.extra_specs_json
+            ? JSON.stringify(variant.extra_specs_json, null, 2)
+            : "",
           imageFiles: [],
           imagePreviews: Array.isArray(variant.images)
             ? variant.images.map((img) => getImageUrl(img.image_url)).filter(Boolean)
@@ -963,9 +1055,22 @@ export default function Admin() {
 
   // ===== RENDER MODULES =====
   const renderModule = () => {
-    if (activeModule === "dashboard") return <AdminDashboard revenueSummary={revenueSummary} />
+    if (activeModule === "dashboard") return (
+      <AdminDashboard
+        revenueSummary={revenueSummary}
+        orders={orders}
+        products={products}
+        customers={customers}
+        lowStockItems={lowStockItems}
+        comments={comments}
+        onNavigate={setActiveModule}
+      />
+    )
     if (activeModule === "products") return (
       <AdminProducts
+        isScopedAdmin={isScopedAdmin}
+        scopedDeviceType={scopedDeviceType}
+        scopedLabel={scopedRule?.label || ""}
         filteredProducts={filteredProducts}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
@@ -1075,8 +1180,8 @@ export default function Admin() {
   }
 
   const visibleModuleItems = user?.role === "admin"
-    ? moduleItems
-    : moduleItems.filter((item) => item.id !== "staff")
+      ? moduleItems
+      : moduleItems.filter((item) => item.id !== "staff")
 
   const activeLabel = visibleModuleItems.find((item) => item.id === activeModule)?.label || "Dashboard"
 
@@ -1128,7 +1233,7 @@ export default function Admin() {
           <FiLayers />
           <div>
             <strong>Admin Portal</strong>
-            <span>Laptop Shop</span>
+            <span>TechMart</span>
           </div>
         </div>
 
@@ -1153,7 +1258,11 @@ export default function Admin() {
         <header className="adm-topbar">
           <div>
             <h1>{activeLabel}</h1>
-            <p>Quản trị vận hành, theo dõi hiệu suất và phát triển hệ thống.</p>
+            <p>
+              {isScopedAdmin
+                ? `Bạn đang ở chế độ quản trị ${scopedRule?.label || "theo phạm vi"}: chỉ mục Sản phẩm áp dụng phân quyền phạm vi, các mục admin khác dùng chung.`
+                : "Quản trị vận hành, theo dõi hiệu suất và phát triển hệ thống."}
+            </p>
           </div>
           <div className="adm-userbox">
             <div className="adm-user-meta">

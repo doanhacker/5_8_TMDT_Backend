@@ -101,6 +101,7 @@ function AdminNewsAPI() {
 
   // ===== CATEGORY FORM =====
   const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [editingCategoryId, setEditingCategoryId] = useState(null)
   const [categoryForm, setCategoryForm] = useState({
     category_name: "",
     description: ""
@@ -292,22 +293,54 @@ function AdminNewsAPI() {
     }
 
     try {
-      await axios.post(
-        `${API_BASE}/categories`,
-        {
-          category_name: name,
-          description: categoryForm.description.trim()
-        },
-        { headers: authHeaders() }
-      )
-      alert("✅ Đã tạo danh mục")
+      const payload = {
+        category_name: name,
+        description: categoryForm.description.trim()
+      }
+
+      if (editingCategoryId) {
+        await axios.put(
+          `${API_BASE}/categories/${editingCategoryId}`,
+          payload,
+          { headers: authHeaders() }
+        )
+        alert("✅ Đã cập nhật danh mục")
+      } else {
+        await axios.post(
+          `${API_BASE}/categories`,
+          payload,
+          { headers: authHeaders() }
+        )
+        alert("✅ Đã tạo danh mục")
+      }
+
       setCategoryForm({ category_name: "", description: "" })
+      setEditingCategoryId(null)
       setShowCategoryForm(false)
       loadCategories()
     } catch (err) {
-      console.error("❌ Lỗi tạo category:", err)
-      alert(err.response?.data?.message || "Không thể tạo danh mục")
+      console.error("❌ Lỗi lưu category:", err)
+      alert(err.response?.data?.message || "Không thể lưu danh mục")
     }
+  }
+
+  const handleEditCategory = (category) => {
+    setEditingCategoryId(category.category_id)
+    setCategoryForm({
+      category_name: category.category_name || "",
+      description: category.description || ""
+    })
+    setShowCategoryForm(true)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const resetCategoryForm = () => {
+    setEditingCategoryId(null)
+    setCategoryForm({
+      category_name: "",
+      description: ""
+    })
+    setShowCategoryForm(false)
   }
 
   const handleDeleteCategory = async (categoryId) => {
@@ -529,8 +562,14 @@ function AdminNewsAPI() {
                       className="form-input"
                     />
                     <button type="submit" className="btn-primary">
-                      <FiPlus /> Thêm
+                      {editingCategoryId ? <FiSave /> : <FiPlus />}
+                      {editingCategoryId ? "Cập nhật" : "Thêm"}
                     </button>
+                    {editingCategoryId && (
+                      <button type="button" className="btn-secondary" onClick={resetCategoryForm}>
+                        <FiX /> Hủy
+                      </button>
+                    )}
                   </div>
                 </form>
 
@@ -542,15 +581,27 @@ function AdminNewsAPI() {
                       <div key={cat.category_id} className="category-item">
                         <div className="category-info">
                           <strong>{cat.category_name}</strong>
-                          {cat.description && <span className="text-muted">— {cat.description}</span>}
+                          {cat.description && <span className="text-muted">{cat.description}</span>}
+                          {cat.post_count != null && (
+                            <span className="text-muted">Bài viết: {cat.post_count}</span>
+                          )}
                         </div>
-                        <button
-                          className="btn-icon btn-danger"
-                          onClick={() => handleDeleteCategory(cat.category_id)}
-                          title="Xóa danh mục"
-                        >
-                          <FiTrash2 />
-                        </button>
+                        <div className="category-actions">
+                          <button
+                            className="btn-icon btn-primary"
+                            onClick={() => handleEditCategory(cat)}
+                            title="Sửa danh mục"
+                          >
+                            <FiEdit2 />
+                          </button>
+                          <button
+                            className="btn-icon btn-danger"
+                            onClick={() => handleDeleteCategory(cat.category_id)}
+                            title="Xóa danh mục"
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}

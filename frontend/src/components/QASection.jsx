@@ -36,7 +36,7 @@ const qaItems = [
     user: "Vũ Thị Lan",
     time: "hôm qua",
     question: "Laptop mua ở đâu rẻ nhất và an toàn nhất?",
-    answer: "Mua ở những cửa hàng uy tín như LaptopShop, Thế Giới Di Động, FPT Shop. Nên mua bảo hành chính hãng để có quyền lợi tốt nhất.",
+    answer: "Mua ở những cửa hàng uy tín như TechMart, Thế Giới Di Động, FPT Shop. Nên mua bảo hành chính hãng để có quyền lợi tốt nhất.",
   },
   {
     id: 6,

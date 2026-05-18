@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
-import { buildApiUrl } from '../config/api'
+import { buildApiUrl, getImageUrl } from '../config/api'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -34,6 +34,10 @@ function mapApiItemToLocal(apiItem) {
     .filter(Boolean)
     .join(' / ')
 
+  const normalizedImage = apiItem.primary_variant_image_url
+    ? getImageUrl(apiItem.primary_variant_image_url)
+    : ''
+
   return {
     // id dùng trong local state — dùng variant_id để khớp với backend
     id: String(apiItem.variant_id),
@@ -44,7 +48,7 @@ function mapApiItemToLocal(apiItem) {
     price,
     quantity: apiItem.quantity,
     // Luôn thêm timestamp để bypass cache ảnh cũ
-    image: apiItem.primary_variant_image_url ? `${apiItem.primary_variant_image_url}?t=${Date.now()}` : '',
+    image: normalizedImage ? `${normalizedImage}${normalizedImage.includes('?') ? '&' : '?'}t=${Date.now()}` : '',
     // Giữ stock để validate tại client
     stockQuantity: apiItem.variant_stock_quantity,
     variantStatus: apiItem.variant_status,

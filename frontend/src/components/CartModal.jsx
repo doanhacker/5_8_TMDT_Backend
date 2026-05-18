@@ -65,7 +65,7 @@ export default function CartModal({ onClose }) {
         ) : (
           <div className="cart-empty">
             <img
-              src="https://via.placeholder.com/200x120?text=LaptopShop"
+                src="https://via.placeholder.com/200x120?text=TechMart"
               alt="empty cart"
             />
             <p>Giỏ hàng của bạn đang trống.</p>

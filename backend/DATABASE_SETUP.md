@@ -4,6 +4,19 @@
 
 ### 1. Import Database Structure
 
+Nếu bạn dùng XAMPP, có thể chạy nhanh toàn bộ bằng PowerShell:
+
+```powershell
+Set-Location "C:\Users\Win 11\laptop-shop\laptop-ecommerce\backend"
+PowerShell -ExecutionPolicy Bypass -File .\restore-database.ps1
+```
+
+Nếu `mysql.exe` của bạn nằm ở vị trí khác, truyền thêm `-MySqlExe`:
+
+```powershell
+PowerShell -ExecutionPolicy Bypass -File .\restore-database.ps1 -MySqlExe "C:\xampp\mysql\bin\mysql.exe"
+```
+
 Mở **Command Prompt** hoặc **PowerShell** và chạy:
 
 ```bash

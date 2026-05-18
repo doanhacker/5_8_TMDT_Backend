@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
 const uploadProduct = require('../middlewares/uploadProductImageMiddleware'); // Import middleware upload ảnh sản phẩm
+const { verifyToken, verifyTokenOptional, verifyAdmin } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -170,7 +171,7 @@ const handleProductUpload = (req, res, next) => {
  *         description: Lỗi máy chủ nội bộ
  */
 // GET tất cả sản phẩm (có thể kèm theo lọc, tìm kiếm, sắp xếp, phân trang)
-router.get('/', productController.getAllProducts);
+router.get('/', verifyTokenOptional, productController.getAllProducts);
 
 router.get('/search/suggest', productController.getSearchSuggestions);
 
@@ -279,7 +280,7 @@ router.get('/:productId', productController.getProductById);
  *         description: Lỗi máy chủ nội bộ
  */
 // POST tạo mới sản phẩm 
-router.post('/', handleProductUpload, productController.createProduct);
+router.post('/', verifyToken, verifyAdmin, handleProductUpload, productController.createProduct);
 
 /**
  * @swagger
@@ -366,7 +367,7 @@ router.post('/', handleProductUpload, productController.createProduct);
  *         description: Lỗi máy chủ nội bộ
  */
 // PUT cập nhật sản phẩm theo ID
-router.put('/:productId', handleProductUpload, productController.updateProduct);
+router.put('/:productId', verifyToken, verifyAdmin, handleProductUpload, productController.updateProduct);
 
 /**
  * @swagger
@@ -393,6 +394,6 @@ router.put('/:productId', handleProductUpload, productController.updateProduct);
  *         description: Lỗi máy chủ nội bộ
  */
 // DELETE sản phẩm theo ID (soft delete - cập nhật trạng thái variants)
-router.delete('/:id', productController.deleteProduct);
+router.delete('/:id', verifyToken, verifyAdmin, productController.deleteProduct);
 
 module.exports = router;

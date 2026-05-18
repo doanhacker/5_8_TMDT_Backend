@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const productCategoryController = require('../controllers/productCategoryController');
+const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -100,7 +101,7 @@ router.get('/:id', productCategoryController.getCategoryById);
  *         description: Lỗi máy chủ nội bộ
  */
 // POST tạo mới danh mục
-router.post('/', productCategoryController.createCategory);
+router.post('/', verifyToken, verifyAdmin, productCategoryController.createCategory);
 
 /**
  * @swagger
@@ -140,7 +141,7 @@ router.post('/', productCategoryController.createCategory);
  *         description: Lỗi máy chủ nội bộ
  */
 // PUT cập nhật danh mục theo ID
-router.put('/:id', productCategoryController.updateCategory);
+router.put('/:id', verifyToken, verifyAdmin, productCategoryController.updateCategory);
 
 /**
  * @swagger
@@ -168,6 +169,6 @@ router.put('/:id', productCategoryController.updateCategory);
  *         description: Lỗi máy chủ nội bộ
  */
 // DELETE danh mục theo ID
-router.delete('/:id', productCategoryController.deleteCategory);
+router.delete('/:id', verifyToken, verifyAdmin, productCategoryController.deleteCategory);
 
 module.exports = router;

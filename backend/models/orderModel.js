@@ -282,7 +282,12 @@ const Order = {
                 pv.storage_gb,
                 od.quantity,
                 od.price_at_purchase,
-                (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id AND is_primary = TRUE LIMIT 1) AS primary_variant_image_url
+                COALESCE(
+                    (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id AND is_primary = TRUE LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE product_id = p.product_id AND variant_id IS NULL AND is_primary = TRUE LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE product_id = p.product_id AND variant_id IS NULL ORDER BY image_id ASC LIMIT 1),
+                    (SELECT image_url FROM product_images WHERE variant_id = pv.variant_id ORDER BY image_id ASC LIMIT 1)
+                ) AS primary_variant_image_url
             FROM order_details od
             JOIN product_variants pv ON od.variant_id = pv.variant_id
             JOIN products p ON pv.product_id = p.product_id

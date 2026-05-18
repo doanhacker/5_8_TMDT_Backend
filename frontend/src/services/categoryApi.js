@@ -1,4 +1,5 @@
 import { buildApiUrl } from '../config/api'
+import { getAuthToken } from '../lib/authToken'
 
 const API_BASE = buildApiUrl('/api/product-categories')
 
@@ -45,10 +46,12 @@ export const getCategoryById = async (id) => {
  */
 export const createCategory = async (payload) => {
   try {
+    const token = getAuthToken()
     const response = await fetch(API_BASE, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(payload),
     })
@@ -71,10 +74,12 @@ export const createCategory = async (payload) => {
  */
 export const updateCategory = async (id, payload) => {
   try {
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE}/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(payload),
     })
@@ -97,8 +102,12 @@ export const updateCategory = async (id, payload) => {
  */
 export const deleteCategory = async (id) => {
   try {
+    const token = getAuthToken()
     const response = await fetch(`${API_BASE}/${id}`, {
       method: 'DELETE',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     })
 
     const data = await response.json()

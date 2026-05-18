@@ -9,9 +9,11 @@ import * as paymentApi from '../services/paymentApi'
 import * as productApi from '../services/productApi'
 import * as userProfileApi from '../services/userProfileApi'
 import { upsertOrderForUser } from '../lib/orderStorage'
+import { getImageUrl } from '../config/api'
 import '../styles/Cart.css'
 
 const toCurrency = (value) => `${value.toLocaleString('vi-VN')}đ`
+const FALLBACK_CART_IMAGE = 'https://via.placeholder.com/160x120?text=Laptop'
 
 const paymentMethods = [
   { id: 'COD', label: 'COD', icon: FiDollarSign, description: 'Thanh toán khi nhận hàng' },
@@ -23,6 +25,7 @@ export default function Cart() {
   const { cart, removeFromCart, updateQuantity, getTotalPrice, clearCart } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [cartImageMap, setCartImageMap] = useState({})
   const [selectedPayment, setSelectedPayment] = useState(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [voucherCode, setVoucherCode] = useState('')
@@ -81,6 +84,60 @@ export default function Cart() {
       : Math.min(subtotal, Number(appliedVoucher.discount_value || 0))
     : 0
   const finalTotal = Math.max(0, subtotal - discountAmount)
+
+  const resolveCartImage = (imageUrl) => {
+    if (!imageUrl) return FALLBACK_CART_IMAGE
+    return getImageUrl(imageUrl)
+  }
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadCartImages = async () => {
+      const nextImageMap = {}
+
+      await Promise.all(
+        cart.map(async (item) => {
+          const directImage = item.image ? resolveCartImage(item.image) : ''
+          if (directImage && directImage !== FALLBACK_CART_IMAGE) {
+            nextImageMap[item.id] = directImage
+            return
+          }
+
+          const cartIdParts = String(item.id || '').split('-')
+          const productId = item.productId || cartIdParts[0]
+          const variantId = Number(item.variantId || cartIdParts[1] || 0)
+
+          if (!productId) {
+            nextImageMap[item.id] = FALLBACK_CART_IMAGE
+            return
+          }
+
+          try {
+            const response = await productApi.getProductById(productId)
+            const detail = response?.data
+            const variants = Array.isArray(detail?.variants) ? detail.variants : []
+            const matchedVariant = variants.find((variant) => Number(variant?.variant_id) === variantId)
+            const variantImage = matchedVariant?.images?.[0]?.image_url
+            const productImage = detail?.primary_product_image_url || detail?.images?.[0]?.image_url
+            nextImageMap[item.id] = resolveCartImage(variantImage || productImage || '')
+          } catch {
+            nextImageMap[item.id] = FALLBACK_CART_IMAGE
+          }
+        }),
+      )
+
+      if (isMounted) {
+        setCartImageMap(nextImageMap)
+      }
+    }
+
+    loadCartImages()
+
+    return () => {
+      isMounted = false
+    }
+  }, [cart])
 
   const handleApplyVoucher = async () => {
     const normalizedCode = String(voucherCode || '').trim()
@@ -343,9 +400,13 @@ export default function Cart() {
               <div className="col-product">
                 <div className="product-info">
                   <img
-                    src={item.image ? `${item.image}${item.image.includes('?') ? '&' : '?'}t=${Date.now()}` : ''}
+                    src={cartImageMap[item.id] || resolveCartImage(item.image)}
                     alt={item.name}
                     className="product-image"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null
+                      event.currentTarget.src = FALLBACK_CART_IMAGE
+                    }}
                   />
                   <div className="product-details">
                     <h3>{item.name}</h3>

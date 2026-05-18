@@ -7,6 +7,35 @@ const extractBearerToken = (req) => {
     return authHeader.slice(7).trim();
 };
 
+const resolveUserFromToken = async (token) => {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.user_id || decoded.id || decoded.userId;
+    const tokenVersion = decoded.token_version;
+
+    if (tokenVersion === undefined || tokenVersion === null || !userId) {
+        return null;
+    }
+
+    const [rows] = await db.query(
+        'SELECT user_id, email, token_version FROM users WHERE user_id = ? LIMIT 1',
+        [userId]
+    );
+
+    const dbUser = rows[0];
+    if (!dbUser) {
+        return null;
+    }
+
+    if ((dbUser.token_version || 1) !== tokenVersion) {
+        return null;
+    }
+
+    return {
+        user_id: dbUser.user_id,
+        email: dbUser.email,
+    };
+};
+
 const verifyToken = async (req, res, next) => {
     try {
         const token = extractBearerToken(req);
@@ -14,40 +43,34 @@ const verifyToken = async (req, res, next) => {
             return res.status(401).json({ success: false, message: 'Thiếu token xác thực' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded.user_id || decoded.id || decoded.userId;
-        const tokenVersion = decoded.token_version;
-        console.log(tokenVersion);
-        if (tokenVersion === undefined || tokenVersion === null) {
-    return res.status(401).json({ success: false, message: 'Token không hợp lệ' });
-}
-        if (!userId) {
-            return res.status(401).json({ success: false, message: 'Token không hợp lệ' });
+        const user = await resolveUserFromToken(token);
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'Token không hợp lệ hoặc đã hết hạn' });
         }
 
-        const [rows] = await db.query(
-            'SELECT user_id, email, token_version FROM users WHERE user_id = ? LIMIT 1',
-            [userId]
-        );
-
-        const dbUser = rows[0];
-        if (!dbUser) {
-            return res.status(401).json({ success: false, message: 'Người dùng không tồn tại' });
-        }
-
-        if ((dbUser.token_version || 1) !== tokenVersion) {
-            return res.status(401).json({ success: false, message: 'Token đã bị thu hồi, vui lòng đăng nhập lại' });
-        }
-
-        req.user = {
-            user_id: dbUser.user_id,
-            email: dbUser.email
-        };
-
+        req.user = user;
         return next();
     } catch (error) {
         return res.status(401).json({ success: false, message: 'Token không hợp lệ hoặc đã hết hạn' });
     }
+};
+
+const verifyTokenOptional = async (req, res, next) => {
+    try {
+        const token = extractBearerToken(req);
+        if (!token) {
+            return next();
+        }
+
+        const user = await resolveUserFromToken(token);
+        if (user) {
+            req.user = user;
+        }
+    } catch (error) {
+        // Ignore optional auth failure and continue as guest.
+    }
+
+    return next();
 };
 
 const verifyAdmin = async (req, res, next) => {
@@ -80,5 +103,6 @@ const verifyAdmin = async (req, res, next) => {
 
 module.exports = {
     verifyToken,
-    verifyAdmin
+    verifyTokenOptional,
+    verifyAdmin,
 };

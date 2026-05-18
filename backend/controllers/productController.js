@@ -12,6 +12,12 @@ const {
     isValidId,
     VALID_STATUSES
 } = require('../helpers/productValidationHelper');
+const {
+    detectScopeFromProduct,
+    getAdminScopeByUser,
+    getPreferredDeviceTypeForScope,
+    checkScopeMutationAccess
+} = require('../helpers/adminScopeHelper');
 
 const toStoredImageUrl = (file) => {
     if (!file) return null;
@@ -23,6 +29,24 @@ const toStoredImageUrl = (file) => {
     }
     return file.path || null;
 };
+
+const parseOptionalJsonObject = (value) => {
+    if (value === undefined || value === null || value === '') {
+        return undefined;
+    }
+
+    let parsedValue = value;
+    if (typeof value === 'string') {
+        parsedValue = JSON.parse(value);
+    }
+
+    if (!parsedValue || typeof parsedValue !== 'object' || Array.isArray(parsedValue)) {
+        throw new Error('JSON object expected');
+    }
+
+    return parsedValue;
+};
+
 
 const productController = {
     /**
@@ -44,6 +68,7 @@ const productController = {
                 brandId,
                 minPrice,
                 maxPrice,
+                deviceType,
             } = req.query;
 
             const options = {
@@ -52,12 +77,19 @@ const productController = {
                 brandId: brandId ? parseInt(brandId) : undefined,
                 minPrice: minPrice ? parseFloat(minPrice) : undefined,
                 maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+                deviceType: deviceType ? String(deviceType).trim().toUpperCase() : undefined,
                 sortBy,
                 sortOrder,
                 limit,
                 offset: getOffset(page, limit),
                 status
             };
+
+            const actingScope = getAdminScopeByUser(req.user);
+            const forcedDeviceType = getPreferredDeviceTypeForScope(actingScope);
+            if (forcedDeviceType) {
+                options.deviceType = forcedDeviceType;
+            }
 
             const products = await Product.getAll(options);
             const totalCount = await Product.getTotalCount(options);
@@ -148,20 +180,46 @@ const productController = {
      */
     createProduct: async (req, res) => {
         try {
+            const createdByUserId = req.user?.user_id;
+
+            if (!createdByUserId) {
+                return res.status(401).json({ success: false, message: 'Yêu cầu xác thực (token) để tạo sản phẩm' });
+            }
+
             const {
-                product_name, brand_id, category_id, description_html, highlight_features,
+                product_name, brand_id, category_id, device_type, description_html, highlight_features,
                 screen_size, weight_kg, os,
+                battery_capacity_mah, refresh_rate_hz, charging_port, connectivity, water_resistance, sensors, speaker_type,
+                device_specific_specs,
                 variants: variantsString
             } = req.body;
 
+            let parsedDeviceSpecificSpecs;
+            try {
+                parsedDeviceSpecificSpecs = parseOptionalJsonObject(device_specific_specs);
+            } catch {
+                return res.status(400).json({ success: false, message: 'device_specific_specs phải là JSON object hợp lệ.' });
+            }
+
             // 1. Validate Product Data
-            const productErrors = validateProductData({ product_name, brand_id, category_id, description_html, highlight_features });
+            const productErrors = validateProductData({ product_name, brand_id, category_id, device_type, description_html, highlight_features });
             if (productErrors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu sản phẩm', errors: productErrors });
             }
 
             // 2. Validate Product Specs Data
-            const specErrors = validateProductSpecData({ screen_size, weight_kg, os });
+            const specErrors = validateProductSpecData({
+                screen_size,
+                weight_kg,
+                os,
+                battery_capacity_mah,
+                refresh_rate_hz,
+                charging_port,
+                connectivity,
+                water_resistance,
+                sensors,
+                speaker_type
+            });
             if (specErrors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu thông số kỹ thuật chung', errors: specErrors });
             }
@@ -222,18 +280,38 @@ const productController = {
                 return res.status(404).json({ success: false, message: 'Danh mục không tồn tại.' });
             }
 
+            const requestedDeviceType = device_type ? String(device_type).trim().toUpperCase() : 'LAPTOP';
+            const targetScope = detectScopeFromProduct({
+                deviceType: requestedDeviceType,
+                categoryName: category.category_name
+            });
+            const access = checkScopeMutationAccess({ user: req.user, targetScope, actionLabel: 'thao tác' });
+            if (!access.allowed) {
+                return res.status(403).json({ success: false, message: access.message });
+            }
+
             const productData = {
                 product_name,
                 brand_id: parseInt(brand_id),
                 category_id: parseInt(category_id),
+                device_type: requestedDeviceType,
                 description_html: description_html || null,
-                highlight_features: highlight_features || null
+                highlight_features: highlight_features || null,
+                created_by: createdByUserId
             };
 
             const specData = {
                 screen_size: screen_size ? parseFloat(screen_size) : null,
                 weight_kg: weight_kg ? parseFloat(weight_kg) : null,
-                os: os || null
+                os: os || null,
+                battery_capacity_mah: battery_capacity_mah ? parseInt(battery_capacity_mah) : null,
+                refresh_rate_hz: refresh_rate_hz ? parseInt(refresh_rate_hz) : null,
+                charging_port: charging_port || null,
+                connectivity: connectivity || null,
+                water_resistance: water_resistance || null,
+                sensors: sensors || null,
+                speaker_type: speaker_type || null
+                    ,device_specific_specs: parsedDeviceSpecificSpecs || {}
             };
 
             const productLevelImageUrls = req.files && req.files['productImages']
@@ -249,7 +327,8 @@ const productController = {
                 productData,
                 specData,
                 productLevelImageUrls,
-                variantsDataForModel
+                variantsDataForModel,
+                parsedDeviceSpecificSpecs || {}
             );
 
             res.status(201).json({
@@ -319,6 +398,7 @@ const productController = {
     updateProduct: async (req, res) => {
         try {
             const { productId } = req.params;
+            const actingUser = req.user;
 
             // Validate productId
             if (!isValidId(productId)) {
@@ -330,23 +410,48 @@ const productController = {
                 return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại!' });
             }
 
+            const existingScope = detectScopeFromProduct({
+                deviceType: existingProduct.device_type,
+                categoryName: existingProduct.category_name
+            });
+
             const {
-                product_name, brand_id, category_id, description_html, highlight_features,
+                product_name, brand_id, category_id, device_type, description_html, highlight_features,
                 screen_size, weight_kg, os,
+                battery_capacity_mah, refresh_rate_hz, charging_port, connectivity, water_resistance, sensors, speaker_type,
+                device_specific_specs,
                 delete_image_ids: deleteImageIdsString,
                 primary_product_image_id,
                 variants_to_update: variantsToUpdateString,
                 variants_to_create: variantsToCreateString
             } = req.body;
 
+            let parsedDeviceSpecificSpecs;
+            try {
+                parsedDeviceSpecificSpecs = parseOptionalJsonObject(device_specific_specs);
+            } catch {
+                return res.status(400).json({ success: false, message: 'device_specific_specs phải là JSON object hợp lệ.' });
+            }
+
             // 1. Validate Product Data
-            const productErrors = validateProductData({ product_name, brand_id, category_id, description_html, highlight_features }, true);
+            const productErrors = validateProductData({ product_name, brand_id, category_id, device_type, description_html, highlight_features }, true);
             if (productErrors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu sản phẩm', errors: productErrors });
             }
 
             // 2. Validate Product Specs Data
-            const specErrors = validateProductSpecData({ screen_size, weight_kg, os }, true);
+            const specErrors = validateProductSpecData({
+                screen_size,
+                weight_kg,
+                os,
+                battery_capacity_mah,
+                refresh_rate_hz,
+                charging_port,
+                connectivity,
+                water_resistance,
+                sensors,
+                speaker_type
+            }, true);
             if (specErrors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu thông số kỹ thuật chung', errors: specErrors });
             }
@@ -365,17 +470,35 @@ const productController = {
                     return res.status(404).json({ success: false, message: 'Thương hiệu không tồn tại.' });
                 }
             }
+            let nextCategoryName = existingProduct.category_name;
             if (category_id) {
                 const category = await ProductCategory.getById(category_id);
                 if (!category) {
                     return res.status(404).json({ success: false, message: 'Danh mục không tồn tại.' });
                 }
+                nextCategoryName = category.category_name;
+            }
+
+            const nextDeviceType = device_type ? String(device_type).trim().toUpperCase() : existingProduct.device_type;
+            const nextScope = detectScopeFromProduct({
+                deviceType: nextDeviceType,
+                categoryName: nextCategoryName
+            });
+
+            const access = checkScopeMutationAccess({
+                user: actingUser,
+                targetScope: existingScope || nextScope,
+                actionLabel: 'thao tác'
+            });
+            if (!access.allowed) {
+                return res.status(403).json({ success: false, message: access.message });
             }
 
             const productData = {
                 product_name,
                 brand_id: brand_id ? parseInt(brand_id) : undefined,
                 category_id: category_id ? parseInt(category_id) : undefined,
+                device_type: device_type ? String(device_type).trim().toUpperCase() : undefined,
                 description_html,
                 highlight_features
             };
@@ -383,7 +506,15 @@ const productController = {
             const specData = {
                 screen_size: screen_size ? parseFloat(screen_size) : undefined,
                 weight_kg: weight_kg ? parseFloat(weight_kg) : undefined,
-                os
+                os,
+                battery_capacity_mah: battery_capacity_mah ? parseInt(battery_capacity_mah) : undefined,
+                refresh_rate_hz: refresh_rate_hz ? parseInt(refresh_rate_hz) : undefined,
+                charging_port,
+                connectivity,
+                water_resistance,
+                sensors,
+                speaker_type,
+                device_specific_specs: parsedDeviceSpecificSpecs
             };
 
             // Lọc bỏ các trường undefined
@@ -456,7 +587,8 @@ const productController = {
                                 original_price: variant.data.original_price ? parseFloat(variant.data.original_price) : undefined,
                                 discount_price: variant.data.discount_price ? parseFloat(variant.data.discount_price) : null,
                                 stock_quantity: variant.data.stock_quantity ? parseInt(variant.data.stock_quantity) : undefined,
-                                status: variant.data.status
+                                status: variant.data.status,
+                                extra_specs_json: variant.data.extra_specs_json || undefined
                             },
                             newImageUrls: newVariantImageUrls,
                             deleteImageIds: deleteVariantImageIds,
@@ -496,6 +628,7 @@ const productController = {
                             discount_price: variant.discount_price ? parseFloat(variant.discount_price) : null,
                             stock_quantity: variant.stock_quantity ? parseInt(variant.stock_quantity) : 0,
                             status: variant.status || 'IN_STOCK',
+                            extra_specs_json: variant.extra_specs_json || null,
                             imageUrls: newVariantImageUrls
                         });
                     }
@@ -544,6 +677,15 @@ const productController = {
             const existingProduct = await Product.getById(id);
             if (!existingProduct) {
                 return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại để cập nhật trạng thái!' });
+            }
+
+            const targetScope = detectScopeFromProduct({
+                deviceType: existingProduct.device_type,
+                categoryName: existingProduct.category_name
+            });
+            const access = checkScopeMutationAccess({ user: req.user, targetScope, actionLabel: 'thao tác' });
+            if (!access.allowed) {
+                return res.status(403).json({ success: false, message: access.message });
             }
 
             const affectedRows = await Product.updateProductVariantsStatus(id, newStatus);

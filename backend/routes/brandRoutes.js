@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const brandController = require('../controllers/brandController');
+const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
 
 /**
  * @swagger
@@ -118,7 +119,7 @@ router.get('/:id', brandController.getBrandById);
  *         description: Lỗi máy chủ nội bộ
  */
 // POST tạo mới thương hiệu
-router.post('/', brandController.createBrand);
+router.post('/', verifyToken, verifyAdmin, brandController.createBrand);
 
 /**
  * @swagger
@@ -160,7 +161,7 @@ router.post('/', brandController.createBrand);
  *         description: Lỗi máy chủ nội bộ
  */
 // PUT cập nhật thương hiệu theo ID
-router.put('/:id', brandController.updateBrand);
+router.put('/:id', verifyToken, verifyAdmin, brandController.updateBrand);
 
 /**
  * @swagger
@@ -188,6 +189,6 @@ router.put('/:id', brandController.updateBrand);
  *         description: Lỗi máy chủ nội bộ
  */
 // DELETE thương hiệu theo ID
-router.delete('/:id', brandController.deleteBrand);
+router.delete('/:id', verifyToken, verifyAdmin, brandController.deleteBrand);
 
 module.exports = router;

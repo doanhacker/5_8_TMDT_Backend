@@ -15,7 +15,7 @@ import {
 } from 'react-icons/fi'
 import '../styles/FilterBar.css'
 
-const filterOptions = {
+const defaultFilterOptions = {
   storage: ['128GB', '256GB', '512GB', '1TB', '2TB'],
   ram: ['4GB', '8GB', '16GB', '32GB', '64GB'],
   cpu: ['Intel Core i3', 'Intel Core i5', 'Intel Core i7', 'Intel Core i9', 'AMD Ryzen 5', 'AMD Ryzen 7', 'AMD Ryzen 9'],
@@ -28,24 +28,24 @@ const filterOptions = {
   series: ['Gaming', 'Văn phòng', 'Đồ họa', 'Cao cấp', 'Sinh viên'],
 }
 
-const filterConfig = [
+const defaultFilterConfig = [
   { id: 'toggle', label: 'Bộ lọc', icon: FiFilter, isToggle: true },
   { id: 'inStock', label: 'Sẵn hàng', icon: FiTruck },
   { id: 'newArrival', label: 'Hàng mới về', icon: FiBox },
   { id: 'priceRange', label: 'Xem theo giá', icon: FiDollarSign, hasDropdown: true, type: 'price' },
-  { id: 'storage', label: 'Ổ cứng', hasDropdown: true, options: filterOptions.storage },
-  { id: 'ram', label: 'Dung lượng RAM', hasDropdown: true, options: filterOptions.ram },
-  { id: 'cpu', label: 'CPU', hasDropdown: true, options: filterOptions.cpu },
-  { id: 'screenSize', label: 'Kích thước màn hình', hasDropdown: true, options: filterOptions.screenSize },
-  { id: 'resolution', label: 'Độ phân giải', hasDropdown: true, options: filterOptions.resolution },
-  { id: 'graphics', label: 'Card đồ họa', hasDropdown: true, options: filterOptions.graphics },
-  { id: 'features', label: 'Tính năng đặc biệt', hasDropdown: true, options: filterOptions.features },
-  { id: 'ai', label: 'Công nghệ AI', hasDropdown: true, options: filterOptions.ai },
-  { id: 'brand', label: 'Hãng sản xuất', hasDropdown: true, options: filterOptions.brand },
-  { id: 'series', label: 'Dòng sản phẩm', hasDropdown: true, options: filterOptions.series },
+  { id: 'storage', label: 'Ổ cứng', hasDropdown: true, options: defaultFilterOptions.storage },
+  { id: 'ram', label: 'Dung lượng RAM', hasDropdown: true, options: defaultFilterOptions.ram },
+  { id: 'cpu', label: 'CPU', hasDropdown: true, options: defaultFilterOptions.cpu },
+  { id: 'screenSize', label: 'Kích thước màn hình', hasDropdown: true, options: defaultFilterOptions.screenSize },
+  { id: 'resolution', label: 'Độ phân giải', hasDropdown: true, options: defaultFilterOptions.resolution },
+  { id: 'graphics', label: 'Card đồ họa', hasDropdown: true, options: defaultFilterOptions.graphics },
+  { id: 'features', label: 'Tính năng đặc biệt', hasDropdown: true, options: defaultFilterOptions.features },
+  { id: 'ai', label: 'Công nghệ AI', hasDropdown: true, options: defaultFilterOptions.ai },
+  { id: 'brand', label: 'Hãng sản xuất', hasDropdown: true, options: defaultFilterOptions.brand },
+  { id: 'series', label: 'Dòng sản phẩm', hasDropdown: true, options: defaultFilterOptions.series },
 ]
 
-const priceRanges = [
+const defaultPriceRanges = [
   { label: 'Dưới 10 triệu', min: 0, max: 10000000 },
   { label: '10 - 15 triệu', min: 10000000, max: 15000000 },
   { label: '15 - 20 triệu', min: 15000000, max: 20000000 },
@@ -54,24 +54,32 @@ const priceRanges = [
   { label: 'Trên 30 triệu', min: 30000000, max: Infinity },
 ]
 
-export default function FilterBar({ onFilterChange }) {
+const buildInitialFilters = (config) => {
+  const initial = {}
+
+  config.forEach((filter) => {
+    if (filter.isToggle) return
+
+    if (filter.hasDropdown) {
+      initial[filter.id] = filter.type === 'price' ? null : []
+      return
+    }
+
+    initial[filter.id] = false
+  })
+
+  return initial
+}
+
+export default function FilterBar({
+  onFilterChange,
+  title = 'Chọn theo tiêu chí',
+  filterConfig = defaultFilterConfig,
+  priceRanges = defaultPriceRanges,
+}) {
   const [showFilters, setShowFilters] = useState(true)
   const [activeDropdown, setActiveDropdown] = useState(null)
-  const [selectedFilters, setSelectedFilters] = useState({
-    inStock: false,
-    newArrival: false,
-    priceRange: null,
-    storage: [],
-    ram: [],
-    cpu: [],
-    screenSize: [],
-    resolution: [],
-    graphics: [],
-    features: [],
-    ai: [],
-    brand: [],
-    series: [],
-  })
+  const [selectedFilters, setSelectedFilters] = useState(() => buildInitialFilters(filterConfig))
   const [sortBy, setSortBy] = useState('popular')
   const [dropdownStyle, setDropdownStyle] = useState({})
   const [portalReady, setPortalReady] = useState(false)
@@ -168,35 +176,23 @@ export default function FilterBar({ onFilterChange }) {
   }
 
   const clearAllFilters = () => {
-    const clearedFilters = {
-      inStock: false,
-      newArrival: false,
-      priceRange: null,
-      storage: [],
-      ram: [],
-      cpu: [],
-      screenSize: [],
-      resolution: [],
-      graphics: [],
-      features: [],
-      ai: [],
-      brand: [],
-      series: [],
-    }
+    const clearedFilters = buildInitialFilters(filterConfig)
     setSelectedFilters(clearedFilters)
     onFilterChange?.(clearedFilters, sortBy)
   }
 
   const getActiveFilterCount = () => {
     let count = 0
-    if (selectedFilters.inStock) count += 1
-    if (selectedFilters.newArrival) count += 1
-    if (selectedFilters.priceRange) count += 1
+
     Object.keys(selectedFilters).forEach((key) => {
-      if (Array.isArray(selectedFilters[key])) {
-        count += selectedFilters[key].length
+      const value = selectedFilters[key]
+      if (Array.isArray(value)) {
+        count += value.length
+      } else if (value !== null && value !== false && value !== undefined) {
+        count += 1
       }
     })
+
     return count
   }
 
@@ -264,7 +260,7 @@ export default function FilterBar({ onFilterChange }) {
     <>
       <div className="filter-bar-wrapper" ref={filterBarRef}>
         <div className="filter-header">
-          <h2 className="filter-title">Chon theo tieu chi</h2>
+          <h2 className="filter-title">{title}</h2>
           {getActiveFilterCount() > 0 && (
             <button className="clear-filters-btn" onClick={clearAllFilters}>
               <FiX /> Xóa bộ lọc ({getActiveFilterCount()})
@@ -276,13 +272,10 @@ export default function FilterBar({ onFilterChange }) {
           <div className="filter-row">
             {filterConfig.map((filter) => {
               const Icon = filter.icon
-              const isActive = filter.id === 'inStock'
-                ? selectedFilters.inStock
-                : filter.id === 'newArrival'
-                  ? selectedFilters.newArrival
-                  : filter.id === 'priceRange'
-                    ? selectedFilters.priceRange !== null
-                    : selectedFilters[filter.id]?.length > 0
+              const selectedValue = selectedFilters[filter.id]
+              const isActive = filter.hasDropdown
+                ? (filter.type === 'price' ? selectedValue !== null : Array.isArray(selectedValue) && selectedValue.length > 0)
+                : Boolean(selectedValue)
 
               if (filter.isToggle) {
                 return (

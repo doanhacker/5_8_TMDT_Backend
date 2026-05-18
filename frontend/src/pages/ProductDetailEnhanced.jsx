@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useCart } from "../context/CartContext"
 import { useProducts } from "../context/ProductContext"
 import * as productApi from "../services/productApi"
@@ -36,6 +36,10 @@ const defaultPromotions = [
 const toText = (html = "") => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()
 const toNumber = (value) => Number(value || 0)
 const formatCurrency = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`
+const extractNumber = (value, fallback = 0) => {
+  const matched = String(value || "").match(/\d+/)
+  return matched ? Number(matched[0]) : fallback
+}
 const formatDate = (value) => {
   if (!value) return ""
   const date = new Date(value)
@@ -96,8 +100,47 @@ const buildCompareEntry = (productDetail, variantIndex = 0, imageOverride = "") 
   }
 }
 
+const normalizeMockProductDetail = (mock) => {
+  if (!mock || !mock.id) return null
+
+  const basePrice = toNumber(mock.price)
+  const fallbackOldPrice = basePrice > 0 ? basePrice : 0
+  const oldPrice = toNumber(mock.oldPrice || fallbackOldPrice)
+  const image = mock.image || FALLBACK_IMAGE
+
+  return {
+    product_id: mock.id,
+    product_name: mock.name || "Sản phẩm",
+    brand_name: mock.brand || "TechMart",
+    screen_size: extractNumber(mock.display, 11),
+    os: mock.os || "Đang cập nhật",
+    weight_kg: 0,
+    highlight_features: mock.feature || "Thiết kế đẹp, hiệu năng ổn định",
+    images: [{ image_url: image }],
+    reviews: [],
+    variants: [
+      {
+        variant_id: `mock-${mock.id}`,
+        discount_price: basePrice,
+        original_price: oldPrice || basePrice,
+        status: "ACTIVE",
+        stock_quantity: 99,
+        cpu_name: mock.chipset || mock.cpu || "Đang cập nhật",
+        gpu: mock.camera || "Đang cập nhật",
+        ram_gb: extractNumber(mock.ram, 8),
+        ram_type: "",
+        storage_gb: extractNumber(mock.storage, 128),
+        sku: `MOCK-${mock.id}`,
+        color_name: "Mặc định",
+        images: [{ image_url: image }],
+      },
+    ],
+  }
+}
+
 export default function ProductDetail() {
   const { id } = useParams()
+  const location = useLocation()
   const navigate = useNavigate()
   const { addToCart } = useCart()
   const { products } = useProducts()
@@ -120,6 +163,10 @@ export default function ProductDetail() {
   const [activeCompareSlot, setActiveCompareSlot] = useState(0)
   const [compareLoadingSlot, setCompareLoadingSlot] = useState(null)
   const [selectedColor, setSelectedColor] = useState("")
+  const mockProductFromState = useMemo(
+    () => normalizeMockProductDetail(location.state?.mockProduct),
+    [location.state],
+  )
   const currentProductSummary = useMemo(
     () => products.find((item) => String(item.id) === String(id)) || null,
     [id, products],
@@ -127,6 +174,31 @@ export default function ProductDetail() {
 
   useEffect(() => {
     const fetchDetail = async () => {
+      const applyMockState = () => {
+        if (!mockProductFromState || String(mockProductFromState.product_id) !== String(id)) {
+          return false
+        }
+
+        setProduct(mockProductFromState)
+        setSelectedVariantIndex(0)
+        setQuantity(1)
+        setActiveTab("overview")
+        setAddMessage("")
+        setCompareSelections([null, null])
+        setCompareMessage("")
+        setCompareQuery("")
+        setShowCompareResults(false)
+        setIsComparePickerOpen(false)
+        setIsCompareDockCollapsed(false)
+        setSelectedColor(mockProductFromState.variants?.[0]?.color_name || "")
+        setSelectedImage(getPrimaryImage(mockProductFromState, mockProductFromState.variants?.[0], FALLBACK_IMAGE))
+        setError("")
+        setLoading(false)
+        return true
+      }
+
+      if (applyMockState()) return
+
       try {
         setLoading(true)
         setError("")
@@ -160,6 +232,7 @@ export default function ProductDetail() {
         const firstProductImage = normalizedDetail.images?.[0]?.image_url
         setSelectedImage(getImageUrl(firstVariantImage || firstProductImage || FALLBACK_IMAGE))
       } catch (err) {
+        if (applyMockState()) return
         console.error("Error fetching product detail:", err)
         setError(err.message || "Không thể tải chi tiết sản phẩm")
       } finally {
@@ -168,7 +241,7 @@ export default function ProductDetail() {
     }
 
     fetchDetail()
-  }, [id])
+  }, [id, mockProductFromState])
 
   const variants = product?.variants || []
   const selectedVariant = variants[selectedVariantIndex] || null

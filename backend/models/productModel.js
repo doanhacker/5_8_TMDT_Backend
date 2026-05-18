@@ -3,6 +3,70 @@ const { getSafeSort } = require('../helpers/queryHelper');
 const { VALID_STATUSES } = require('../helpers/productValidationHelper');
 const User = require('./userModel');
 
+const DEVICE_SPEC_TABLES = {
+    PHONE: 'phone_specifications',
+    TABLET: 'tablet_specifications',
+    WATCH: 'watch_specifications',
+    AUDIO: 'audio_specifications',
+    ACCESSORY: 'accessory_specifications'
+};
+
+const DEVICE_SPEC_FIELDS = {
+    PHONE: ['chipset', 'sim_type', 'front_camera_mp', 'rear_camera_mp', 'network_support'],
+    TABLET: ['chipset', 'stylus_support', 'keyboard_support', 'network_support'],
+    WATCH: ['compatible_os', 'strap_material', 'health_tracking_features', 'gps_supported'],
+    AUDIO: ['audio_type', 'bluetooth_version', 'anc_supported', 'battery_life_hours'],
+    ACCESSORY: ['accessory_type', 'compatibility', 'warranty_months', 'material']
+};
+
+const normalizeDeviceType = (deviceType) => String(deviceType || '').trim().toUpperCase();
+
+const upsertDeviceSpecificSpecs = async (connection, productId, deviceType, specs = {}) => {
+    const normalizedType = normalizeDeviceType(deviceType);
+    const tableName = DEVICE_SPEC_TABLES[normalizedType];
+    const allowedFields = DEVICE_SPEC_FIELDS[normalizedType] || [];
+
+    if (!tableName || !specs || typeof specs !== 'object' || Array.isArray(specs)) {
+        return;
+    }
+
+    const filteredEntries = Object.entries(specs).filter(([key, value]) => allowedFields.includes(key) && value !== undefined);
+    if (filteredEntries.length === 0) {
+        return;
+    }
+
+    const [existingRows] = await connection.query(`SELECT product_id FROM ${tableName} WHERE product_id = ? LIMIT 1`, [productId]);
+    if (existingRows.length > 0) {
+        const setClause = filteredEntries.map(([key]) => `${key} = ?`).join(', ');
+        const values = filteredEntries.map(([, value]) => value);
+        values.push(productId);
+        await connection.query(`UPDATE ${tableName} SET ${setClause} WHERE product_id = ?`, values);
+        return;
+    }
+
+    const columns = filteredEntries.map(([key]) => key);
+    const placeholders = columns.map(() => '?').join(', ');
+    const values = filteredEntries.map(([, value]) => value);
+    await connection.query(
+        `INSERT INTO ${tableName} (product_id, ${columns.join(', ')}) VALUES (?, ${placeholders})`,
+        [productId, ...values]
+    );
+};
+
+const getDeviceSpecificSpecs = async (connection, productId, deviceType) => {
+    const normalizedType = normalizeDeviceType(deviceType);
+    const tableName = DEVICE_SPEC_TABLES[normalizedType];
+    const allowedFields = DEVICE_SPEC_FIELDS[normalizedType] || [];
+
+    if (!tableName) {
+        return null;
+    }
+
+    const selectedFields = allowedFields.join(', ');
+    const [rows] = await connection.query(`SELECT ${selectedFields} FROM ${tableName} WHERE product_id = ? LIMIT 1`, [productId]);
+    return rows[0] || null;
+};
+
 const Product = {
     /**
      * Lấy tất cả sản phẩm với tùy chọn lọc, sắp xếp và phân trang.
@@ -23,6 +87,7 @@ const Product = {
             SELECT
                 p.product_id,
                 p.product_name,
+                p.device_type,
                 p.description_html,
                 p.highlight_features,
                 b.brand_name,
@@ -30,6 +95,13 @@ const Product = {
                 ps.screen_size,
                 ps.weight_kg,
                 ps.os,
+                ps.battery_capacity_mah,
+                ps.refresh_rate_hz,
+                ps.charging_port,
+                ps.connectivity,
+                ps.water_resistance,
+                ps.sensors,
+                ps.speaker_type,
                 MIN(CASE WHEN pv.discount_price IS NOT NULL THEN pv.discount_price ELSE pv.original_price END) AS min_price,
                 MAX(CASE WHEN pv.discount_price IS NOT NULL THEN pv.discount_price ELSE pv.original_price END) AS max_price,
                 SUM(pv.stock_quantity) AS total_stock_quantity,
@@ -100,6 +172,11 @@ const Product = {
         if (options.categoryId) {
             query += ` AND p.category_id = ?`;
             values.push(options.categoryId);
+        }
+
+        if (options.deviceType) {
+            query += ` AND UPPER(TRIM(p.device_type)) = ?`;
+            values.push(String(options.deviceType).trim().toUpperCase());
         }
 
         // Lọc theo thương hiệu
@@ -174,6 +251,7 @@ const Product = {
             SELECT
                 p.product_id,
                 p.product_name,
+                p.device_type,
                 c.category_id,
                 c.category_name,
                 MIN(CASE WHEN pv.discount_price IS NOT NULL THEN pv.discount_price ELSE pv.original_price END) AS current_price,
@@ -224,6 +302,10 @@ const Product = {
             query += ` AND p.category_id = ?`;
             values.push(options.categoryId);
         }
+        if (options.deviceType) {
+            query += ` AND UPPER(TRIM(p.device_type)) = ?`;
+            values.push(String(options.deviceType).trim().toUpperCase());
+        }
         if (options.brandId) {
             query += ` AND p.brand_id = ?`;
             values.push(options.brandId);
@@ -246,6 +328,7 @@ const Product = {
                 WHERE 1=1
                 ${options.search ? ` AND p.product_name LIKE ?` : ''}
                 ${options.categoryId ? ` AND p.category_id = ?` : ''}
+                ${options.deviceType ? ` AND UPPER(TRIM(p.device_type)) = ?` : ''}
                 ${options.brandId ? ` AND p.brand_id = ?` : ''}
                 ${options.status && VALID_STATUSES.includes(options.status.toUpperCase()) ? ` AND pv.status = ?` : ''}
                 GROUP BY p.product_id
@@ -253,6 +336,7 @@ const Product = {
             const subQueryValues = [];
             if (options.search) subQueryValues.push(`%${options.search}%`);
             if (options.categoryId) subQueryValues.push(options.categoryId);
+            if (options.deviceType) subQueryValues.push(String(options.deviceType).trim().toUpperCase());
             if (options.brandId) subQueryValues.push(options.brandId);
             if (options.status && VALID_STATUSES.includes(options.status.toUpperCase())) subQueryValues.push(options.status.toUpperCase());
 
@@ -294,6 +378,7 @@ const Product = {
             SELECT
                 p.product_id,
                 p.product_name,
+                p.device_type,
                 p.description_html,
                 p.highlight_features,
                 p.created_at,
@@ -301,7 +386,15 @@ const Product = {
                 c.category_name,
                 ps.screen_size,     -- Từ product_specifications
                 ps.weight_kg,       -- Từ product_specifications
-                ps.os               -- Từ product_specifications
+                ps.os,              -- Từ product_specifications
+                ps.battery_capacity_mah,
+                ps.refresh_rate_hz,
+                ps.charging_port,
+                ps.connectivity,
+                ps.water_resistance,
+                ps.sensors,
+                ps.speaker_type,
+                ps.extra_specs_json
             FROM products p
             LEFT JOIN brands b ON p.brand_id = b.brand_id
             LEFT JOIN categories c ON p.category_id = c.category_id
@@ -337,7 +430,8 @@ const Product = {
                 pv.original_price,
                 pv.discount_price,
                 pv.stock_quantity,
-                pv.status
+                pv.status,
+                pv.extra_specs_json
             FROM product_variants pv
             WHERE pv.product_id = ?
             ORDER BY pv.color_name ASC, pv.ram_gb ASC, pv.storage_gb ASC`,
@@ -353,6 +447,7 @@ const Product = {
             variant.images = variantImages;
         }
         product.variants = variants;
+        product.device_specific_specs = await getDeviceSpecificSpecs(db, id, product.device_type);
 
 
         // 5. Lấy danh sách đánh giá của sản phẩm, bao gồm tên người dùng
@@ -421,7 +516,7 @@ const Product = {
      *   variant = { sku, cpu_name, cpu_benchmark_score, gpu, ram_gb, storage_gb, color_name, original_price, discount_price, stock_quantity, status, imageUrls: [] }
      * @returns {Promise<number>} ID của sản phẩm vừa được thêm.
      */
-    create: async (productData, specData, productLevelImageUrls = [], variantsData = []) => {
+    create: async (productData, specData, productLevelImageUrls = [], variantsData = [], deviceSpecificSpecs = {}) => {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
@@ -429,15 +524,17 @@ const Product = {
             // 1. Thêm sản phẩm chính
             const productInsertQuery = `
                 INSERT INTO products
-                (product_name, brand_id, category_id, description_html, highlight_features)
-                VALUES (?, ?, ?, ?, ?)
+                (product_name, brand_id, category_id, device_type, description_html, highlight_features, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             `;
             const productValues = [
                 productData.product_name,
                 productData.brand_id,
                 productData.category_id,
+                productData.device_type || 'LAPTOP',
                 productData.description_html || null,
                 productData.highlight_features || null,
+                productData.created_by || null
             ];
             const [productResult] = await connection.query(productInsertQuery, productValues);
             const newProductId = productResult.insertId;
@@ -446,17 +543,27 @@ const Product = {
             if (specData && Object.keys(specData).length > 0) {
                 const specInsertQuery = `
                     INSERT INTO product_specifications
-                    (product_id, screen_size, weight_kg, os)
-                    VALUES (?, ?, ?, ?)
+                    (product_id, screen_size, weight_kg, os, battery_capacity_mah, refresh_rate_hz, charging_port, connectivity, water_resistance, sensors, speaker_type, extra_specs_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
                 const specValues = [
                     newProductId,
                     specData.screen_size || null,
                     specData.weight_kg || null,
-                    specData.os || null
+                    specData.os || null,
+                    specData.battery_capacity_mah || null,
+                    specData.refresh_rate_hz || null,
+                    specData.charging_port || null,
+                    specData.connectivity || null,
+                    specData.water_resistance || null,
+                    specData.sensors || null,
+                    specData.speaker_type || null,
+                    specData.extra_specs_json || null
                 ];
                 await connection.query(specInsertQuery, specValues);
             }
+
+            await upsertDeviceSpecificSpecs(connection, newProductId, productData.device_type || 'LAPTOP', deviceSpecificSpecs);
 
             // 3. Thêm hình ảnh cấp sản phẩm
             if (productLevelImageUrls.length > 0) {
@@ -472,8 +579,8 @@ const Product = {
             // 4. Thêm các phiên bản (variants) và ảnh của từng variant
             const variantInsertQuery = `
                 INSERT INTO product_variants
-                (product_id, sku, cpu_name, cpu_benchmark_score, gpu, ram_gb, ram_type, storage_gb, color_name, original_price, discount_price, stock_quantity, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (product_id, sku, cpu_name, cpu_benchmark_score, gpu, ram_gb, ram_type, storage_gb, color_name, original_price, discount_price, stock_quantity, status, extra_specs_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             const variantImageInsertQuery = `INSERT INTO product_images (product_id, variant_id, image_url, is_primary) VALUES (?, ?, ?, ?)`;
 
@@ -491,7 +598,8 @@ const Product = {
                     variant.original_price,
                     variant.discount_price || null,
                     variant.stock_quantity || 0,
-                    variant.status || 'IN_STOCK'
+                    variant.status || 'IN_STOCK',
+                    variant.extra_specs_json || null
                 ];
                 const [variantResult] = await connection.query(variantInsertQuery, variantValues);
                 const newVariantId = variantResult.insertId;
@@ -547,7 +655,7 @@ const Product = {
             let affectedTotalRows = 0;
 
             // 1. Cập nhật thông tin sản phẩm
-            const allowedProductFields = ['product_name', 'brand_id', 'category_id', 'description_html', 'highlight_features'];
+            const allowedProductFields = ['product_name', 'brand_id', 'category_id', 'device_type', 'description_html', 'highlight_features'];
             const productFieldsToUpdate = [];
             const productValues = [];
 
@@ -569,7 +677,7 @@ const Product = {
             if (specData && Object.keys(specData).length > 0) {
                 const [existingSpec] = await connection.query('SELECT spec_id FROM product_specifications WHERE product_id = ?', [productId]);
                 if (existingSpec.length > 0) {
-                    const allowedSpecFields = ['screen_size', 'weight_kg', 'os'];
+                    const allowedSpecFields = ['screen_size', 'weight_kg', 'os', 'battery_capacity_mah', 'refresh_rate_hz', 'charging_port', 'connectivity', 'water_resistance', 'sensors', 'speaker_type', 'extra_specs_json'];
                     const specFieldsToUpdate = [];
                     const specValues = [];
 
@@ -589,14 +697,22 @@ const Product = {
                 } else {
                     const specInsertQuery = `
                         INSERT INTO product_specifications
-                        (product_id, screen_size, weight_kg, os)
-                        VALUES (?, ?, ?, ?)
+                        (product_id, screen_size, weight_kg, os, battery_capacity_mah, refresh_rate_hz, charging_port, connectivity, water_resistance, sensors, speaker_type, extra_specs_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     `;
                     const insertSpecValues = [
                         productId,
                         specData.screen_size || null,
                         specData.weight_kg || null,
-                        specData.os || null
+                        specData.os || null,
+                        specData.battery_capacity_mah || null,
+                        specData.refresh_rate_hz || null,
+                        specData.charging_port || null,
+                        specData.connectivity || null,
+                        specData.water_resistance || null,
+                        specData.sensors || null,
+                        specData.speaker_type || null,
+                        specData.extra_specs_json || null
                     ];
                     const [result] = await connection.query(specInsertQuery, insertSpecValues);
                     affectedTotalRows += result.affectedRows;
@@ -647,7 +763,7 @@ const Product = {
                 const deleteVariantImageIds = variantUpdate.deleteImageIds || [];
                 const primaryVariantImageId = variantUpdate.primaryImageId;
 
-                const allowedVariantFields = ['sku', 'cpu_name', 'cpu_benchmark_score', 'gpu', 'ram_gb', 'ram_type', 'storage_gb', 'color_name', 'original_price', 'discount_price', 'stock_quantity', 'status'];
+                const allowedVariantFields = ['sku', 'cpu_name', 'cpu_benchmark_score', 'gpu', 'ram_gb', 'ram_type', 'storage_gb', 'color_name', 'original_price', 'discount_price', 'stock_quantity', 'status', 'extra_specs_json'];
                 const variantFieldsToUpdate = [];
                 const variantValues = [];
 
@@ -705,8 +821,8 @@ const Product = {
             // 7. Thêm các variants mới
             const variantInsertQuery = `
                 INSERT INTO product_variants
-                (product_id, sku, cpu_name, cpu_benchmark_score, gpu, ram_gb, ram_type, storage_gb, color_name, original_price, discount_price, stock_quantity, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (product_id, sku, cpu_name, cpu_benchmark_score, gpu, ram_gb, ram_type, storage_gb, color_name, original_price, discount_price, stock_quantity, status, extra_specs_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
             const variantImageInsertQuery = `INSERT INTO product_images (product_id, variant_id, image_url, is_primary) VALUES (?, ?, ?, ?)`;
 
@@ -724,7 +840,8 @@ const Product = {
                     variant.original_price,
                     variant.discount_price || null,
                     variant.stock_quantity || 0,
-                    variant.status || 'IN_STOCK'
+                    variant.status || 'IN_STOCK',
+                    variant.extra_specs_json || null
                 ];
                 const [result] = await connection.query(variantInsertQuery, variantValues);
                 const newVariantId = result.insertId;
@@ -742,6 +859,10 @@ const Product = {
                     }
                 }
             }
+
+            const [currentDeviceTypeRows] = await connection.query('SELECT device_type FROM products WHERE product_id = ? LIMIT 1', [productId]);
+            const effectiveDeviceType = normalizeDeviceType(productData.device_type || currentDeviceTypeRows[0]?.device_type || 'LAPTOP');
+            await upsertDeviceSpecificSpecs(connection, productId, effectiveDeviceType, specData.device_specific_specs || {});
 
             await connection.commit();
             return affectedTotalRows;

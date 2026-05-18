@@ -2,9 +2,9 @@ const pool = require('../config/db');
 
 const User = {
     // Tạo user mới
-    create: async (userData) => {
+    create: async (userData, executor = pool) => {
         const { email, password_hash, full_name, phone_number } = userData;
-        const [result] = await pool.execute(
+        const [result] = await executor.execute(
             `INSERT INTO users (email, password_hash, full_name, phone_number, status) 
              VALUES (?, ?, ?, ?, 'ACTIVE')`,
             [email, password_hash, full_name, phone_number]
@@ -13,8 +13,8 @@ const User = {
     },
 
     // Tìm user theo email
-    findByEmail: async (email) => {
-        const [rows] = await pool.execute(
+    findByEmail: async (email, executor = pool) => {
+        const [rows] = await executor.execute(
             'SELECT * FROM users WHERE email = ?',
             [email]
         );
@@ -22,8 +22,8 @@ const User = {
     },
 
     // Tìm user theo ID
-    findById: async (userId) => {
-        const [rows] = await pool.execute(
+    findById: async (userId, executor = pool) => {
+        const [rows] = await executor.execute(
         'SELECT user_id, email, full_name, phone_number, status, token_version, created_at FROM users WHERE user_id = ?',
         [userId]
     );
@@ -50,8 +50,8 @@ const User = {
     },
 
     // Gán role cho user (mặc định là customer)
-    assignRole: async (userId, roleId = 3) => {
-        await pool.execute(
+    assignRole: async (userId, roleId = 3, executor = pool) => {
+        await executor.execute(
             'INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)',
             [userId, roleId]
         );

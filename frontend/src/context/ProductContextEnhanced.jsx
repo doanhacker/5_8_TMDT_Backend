@@ -23,6 +23,18 @@ const splitHighlightFeatures = (value) => {
     .filter(Boolean)
 }
 
+const parseOptionalJsonObject = (value) => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value === 'object' && !Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    const parsed = JSON.parse(value)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed
+    }
+  }
+  throw new Error('Giá trị JSON phải là object hợp lệ')
+}
+
 const normalizeStatusFromStock = (status, stockQuantity) => {
   if (status) return status
   return Number(stockQuantity || 0) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK'
@@ -65,6 +77,8 @@ const mapApiProductToUi = (product) => {
   return {
     id: String(product?.product_id || ''),
     name: product?.product_name || '',
+    deviceType: product?.device_type || 'LAPTOP',
+    deviceSpecificSpecs: product?.device_specific_specs || null,
     brand_id: product?.brand_id ? String(product.brand_id) : '',
     category_id: product?.category_id ? String(product.category_id) : '',
     brand: product?.brand_name || 'Unknown',
@@ -79,6 +93,13 @@ const mapApiProductToUi = (product) => {
     screenSize: screenSizeValue ? `${screenSizeValue} inch` : '',
     weightKg: product?.weight_kg != null ? String(product.weight_kg) : '',
     os: String(product?.os || '').trim(),
+    batteryCapacityMah: product?.battery_capacity_mah != null ? String(product.battery_capacity_mah) : '',
+    refreshRateHz: product?.refresh_rate_hz != null ? String(product.refresh_rate_hz) : '',
+    chargingPort: product?.charging_port || '',
+    connectivity: product?.connectivity || '',
+    waterResistance: product?.water_resistance || '',
+    sensors: product?.sensors || '',
+    speakerType: product?.speaker_type || '',
     graphics: representativeVariant?.gpu || product?.representative_gpu || '',
     stock: totalStock,
     inStock: productStatus === 'IN_STOCK',
@@ -123,6 +144,10 @@ const mapVariantInputToApi = (variantInput) => {
       : parseFloat(rawDiscountPrice)
   const discountPriceValue = Number.isFinite(parsedDiscountPrice) ? parsedDiscountPrice : undefined
 
+  const parsedExtraSpecs = parseOptionalJsonObject(
+    variantInput.extra_specs_json ?? variantInput.extraSpecsJson ?? variantInput.extraSpecsJsonText
+  )
+
   return {
     sku: String(variantInput.sku || '').trim(),
     cpu_name: variantInput.cpu_name || variantInput.cpu || null,
@@ -136,6 +161,7 @@ const mapVariantInputToApi = (variantInput) => {
     discount_price: discountPriceValue,
     stock_quantity: stockQuantity,
     status: normalizeStatusFromStock(variantInput.status, stockQuantity),
+    extra_specs_json: parsedExtraSpecs,
   }
 }
 
@@ -267,17 +293,37 @@ export function ProductProvider({ children }) {
       if (Array.isArray(productData.productVariants) && productData.productVariants.length > 0) {
         variants = productData.productVariants.map((v, index) => {
           // Validate các trường bắt buộc trước khi map
-          if (!v.sku || !v.color || !v.cpu || !v.gpu || v.ram === undefined || v.storage === undefined || v.originalPrice === undefined) {
+          if (!v.sku || !v.color || v.ram === undefined || v.storage === undefined || v.originalPrice === undefined) {
             throw new Error(`Phiên bản #${index + 1} chưa hợp lệ. Vui lòng kiểm tra lại thông tin.`)
           }
+
+          const ramValue = Number(v.ram)
+          const storageValue = Number(v.storage)
+          const originalPriceValue = Number(v.originalPrice)
+          const discountPriceValue = v.discountPrice !== undefined && v.discountPrice !== null && v.discountPrice !== ''
+            ? Number(v.discountPrice)
+            : null
+
+          if (!Number.isFinite(ramValue) || ramValue <= 0) {
+            throw new Error(`Phiên bản #${index + 1}: RAM phải là số dương.`)
+          }
+          if (!Number.isFinite(storageValue) || storageValue <= 0) {
+            throw new Error(`Phiên bản #${index + 1}: Bộ nhớ phải là số dương.`)
+          }
+          if (!Number.isFinite(originalPriceValue) || originalPriceValue <= 0) {
+            throw new Error(`Phiên bản #${index + 1}: Giá gốc phải lớn hơn 0.`)
+          }
+          if (discountPriceValue !== null) {
+            if (!Number.isFinite(discountPriceValue) || discountPriceValue < 0) {
+              throw new Error(`Phiên bản #${index + 1}: Giá khuyến mãi không hợp lệ.`)
+            }
+            if (discountPriceValue >= originalPriceValue) {
+              throw new Error(`Phiên bản #${index + 1}: Giá khuyến mãi phải nhỏ hơn giá gốc.`)
+            }
+          }
+
           if (!Array.isArray(v.imageFiles) || v.imageFiles.length === 0) {
             throw new Error(`Phiên bản #${index + 1} cần tối thiểu 1 ảnh.`)
-          }
-          if (v.cpu_benchmark_score === undefined && (v.cpuBenchmarkScore === undefined || v.cpuBenchmarkScore === null || v.cpuBenchmarkScore === '' || isNaN(Number(v.cpuBenchmarkScore)))) {
-            throw new Error(`Phiên bản #${index + 1} cần nhập CPU Benchmark Score hợp lệ.`)
-          }
-          if (!v.ramType || typeof v.ramType !== 'string' || !v.ramType.trim()) {
-            throw new Error(`Phiên bản #${index + 1} cần nhập loại RAM (ram_type).`)
           }
           // Sử dụng mapVariantInputToApi để map đầy đủ các trường
           return mapVariantInputToApi(v)
@@ -327,11 +373,20 @@ export function ProductProvider({ children }) {
         product_name: productData.name,
         brand_id: parseInt(productData.brand_id),
         category_id: parseInt(productData.category_id),
+        device_type: productData.deviceType || 'LAPTOP',
         description_html: productData.description || '<p>Laptop chất lượng cao</p>',
         highlight_features: productData.features?.join(', ') || 'Hiệu năng mạnh mẽ',
         screen_size: parseFloat(productData.screenSize) || undefined,
         weight_kg: parseFloat(productData.weightKg) || undefined,
         os: productData.os || 'Windows 11',
+        battery_capacity_mah: productData.batteryCapacityMah ? parseInt(productData.batteryCapacityMah, 10) : undefined,
+        refresh_rate_hz: productData.refreshRateHz ? parseInt(productData.refreshRateHz, 10) : undefined,
+        charging_port: productData.chargingPort || undefined,
+        connectivity: productData.connectivity || undefined,
+        water_resistance: productData.waterResistance || undefined,
+        sensors: productData.sensors || undefined,
+        speaker_type: productData.speakerType || undefined,
+        device_specific_specs: productData.deviceSpecificSpecs || undefined,
         variants,
         productImages: productData.productImages,
         variantImages: productData.productVariants?.map((variant) => variant.imageFiles || []) || []
@@ -396,11 +451,20 @@ export function ProductProvider({ children }) {
         product_name: updates.product_name || updates.name,
         brand_id: updates.brand_id ? parseInt(updates.brand_id, 10) : undefined,
         category_id: updates.category_id ? parseInt(updates.category_id, 10) : undefined,
+        device_type: updates.device_type || updates.deviceType,
         description_html: updates.description_html ?? updates.description,
         highlight_features: updates.highlight_features ?? updates.highlightFeatures ?? updates.features?.join(', '),
         screen_size: updates.screen_size ?? (updates.screenSize ? parseFloat(updates.screenSize) : undefined),
         weight_kg: updates.weight_kg ?? (updates.weightKg ? parseFloat(updates.weightKg) : undefined),
         os: updates.os,
+        battery_capacity_mah: updates.battery_capacity_mah ?? (updates.batteryCapacityMah ? parseInt(updates.batteryCapacityMah, 10) : undefined),
+        refresh_rate_hz: updates.refresh_rate_hz ?? (updates.refreshRateHz ? parseInt(updates.refreshRateHz, 10) : undefined),
+        charging_port: updates.charging_port ?? updates.chargingPort,
+        connectivity: updates.connectivity,
+        water_resistance: updates.water_resistance ?? updates.waterResistance,
+        sensors: updates.sensors,
+        speaker_type: updates.speaker_type ?? updates.speakerType,
+        device_specific_specs: updates.device_specific_specs ?? updates.deviceSpecificSpecs,
         variants_to_update: variantsToUpdate,
         variants_to_create: variantsToCreate,
         variantImagesToUpdate,
@@ -554,10 +618,10 @@ export function ProductProvider({ children }) {
       const normalizedSku = normalizedVariant.sku
       const cpuBenchmarkScore = normalizedVariant.cpu_benchmark_score
 
-      if (!variantId || !normalizedSku || !normalizedVariant.color_name || !normalizedVariant.cpu_name || !normalizedVariant.gpu || cpuBenchmarkScore === undefined || isNaN(ramValue) || isNaN(storageValue) || isNaN(originalPrice)) {
+      if (!variantId || !normalizedSku || !normalizedVariant.color_name || isNaN(ramValue) || isNaN(storageValue) || isNaN(originalPrice)) {
         throw new Error('Thông tin phiên bản chưa đầy đủ hoặc không hợp lệ')
       }
-      if (cpuBenchmarkScore <= 0 || ramValue <= 0 || storageValue <= 0 || originalPrice <= 0) {
+      if (ramValue <= 0 || storageValue <= 0 || originalPrice <= 0) {
         throw new Error('RAM, ổ cứng và giá gốc phải lớn hơn 0')
       }
       if (discountPrice !== null && discountPrice >= originalPrice) {

@@ -1,34 +1,64 @@
 .auth-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Cao hơn header sticky (1100) để không bị che */
+  z-index: 5000;
 }
 
 .auth-container {
   background: #fff;
-  padding: 30px 40px;
+  padding: 48px 32px 24px;
+  margin: auto;
   border-radius: 12px;
   max-width: 400px;
-  width: 90%;
+  width: 100%;
+  max-height: calc(100dvh - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   position: relative;
   text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
 }
 
 .auth-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  background: transparent;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  background: #f3f4f6;
   border: none;
-  font-size: 24px;
+  font-size: 22px;
+  line-height: 1;
   cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+}
+
+.auth-close:hover {
+  background: #e5e7eb;
+}
+
+.auth-container h2 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
 }
 
 .auth-form {

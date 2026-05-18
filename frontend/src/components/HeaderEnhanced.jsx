@@ -1,71 +1,58 @@
-import { FiShoppingCart, FiUser, FiSearch, FiList, FiLogOut, FiPackage, FiBell } from 'react-icons/fi'
-import { MdFiberNew, MdLocalOffer, MdVerifiedUser, MdLocalShipping, MdLocationOn, MdPhone } from 'react-icons/md'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  FiBell,
+  FiChevronRight,
+  FiList,
+  FiLogOut,
+  FiPackage,
+  FiShoppingCart,
+  FiUser
+} from 'react-icons/fi'
+import {
+  MdFiberNew,
+  MdHeadset,
+  MdLaptopMac,  
+  MdLocalOffer,
+  MdLocalShipping,
+  MdLocationOn,
+  MdPhone,
+  MdPhoneIphone,
+  MdVerifiedUser,
+  MdWatch
+} from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
+import { buildApiUrl } from '../config/api'
 import { useAuth } from '../context/AuthContext'
-import AuthModal from './AuthModal'
-import '../styles/header.css'
 import { useCart } from '../context/CartContext'
-import { useProducts } from '../context/ProductContext'
 import { useNotifications } from '../context/NotificationContext'
-import { buildApiUrl } from "../config/api"
-import SearchSuggestBox from "./SearchSuggestBox";
+import AuthModal from './AuthModal'
+import SearchSuggestBox from './SearchSuggestBox'
+import '../styles/header.css'
 
 export default function Header() {
   const [showAuth, setShowAuth] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showCategoryMenu, setShowCategoryMenu] = useState(false)
+  const [categoryItems, setCategoryItems] = useState([])
   const categoryMenuRef = useRef(null)
   const navigate = useNavigate()
   const { user, logout, isAdmin } = useAuth()
-  const  {getTotalItems} = useCart()
-  const { products } = useProducts()
+  const { getTotalItems } = useCart()
   const { unreadCount } = useNotifications()
-  const [categoryItems, setCategoryItems] = useState([])
 
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await fetch(buildApiUrl("/api/product-categories"))
+        const res = await fetch(buildApiUrl('/api/product-categories'))
         const data = await res.json().catch(() => ({}))
         setCategoryItems(Array.isArray(data?.data) ? data.data : [])
       } catch {
         setCategoryItems([])
       }
     }
+
     loadCategories()
   }, [])
-  const topBarContent = [
-    { icon: MdLocalOffer, text: 'Thu cũ giá ngon - Lên đời tiết kiệm' },
-    { icon: MdVerifiedUser, text: 'Sản phẩm chính hãng - Xuất VAT đầy đủ' },
-    { icon: MdLocalShipping, text: 'Giao nhanh - Miễn phí cho đơn 300K' },
-    { icon: MdLocationOn, text: 'Cửa hàng gần bạn' },
-    { icon: FiPackage, text: 'Tra cứu đơn hàng' },
-    { icon: MdPhone, text: '1800 2097' }
-  ]
-
-  const handleLogout = () => {
-    logout()
-    setShowUserMenu(false)
-  }
-
-  const handleAdminClick = () => {
-    setShowUserMenu(false)
-    navigate('/admin')
-  }
-  
-  const handleUserClick = () => {
-  
-    navigate("/")
-  }
-
-  const categories = useMemo(() => {
-    const names = products
-      .map((product) => (product.series || '').trim())
-      .filter(Boolean)
-
-    return [...new Set(names)]
-  }, [products])
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -78,15 +65,76 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
 
-  const handleCategoryClick = (category) => {
-    setShowCategoryMenu(false)
-    navigate(`/categories/${category.category_id}`)
+  const topBarContent = [
+    { icon: MdLocalOffer, text: 'Thu cũ giá ngon - Lên đời tiết kiệm' },
+    { icon: MdVerifiedUser, text: 'Sản phẩm chính hãng - Xuất VAT đầy đủ' },
+    { icon: MdLocalShipping, text: 'Giao nhanh - Miễn phí cho đơn 300K' },
+    { icon: MdLocationOn, text: 'Cửa hàng gần bạn' },
+    { icon: FiPackage, text: 'Tra cứu đơn hàng' },
+    { icon: MdPhone, text: '1800 2097' }
+  ]
+
+     const categoryMenuGroups = [
+    { label: 'Laptop',          icon: MdLaptopMac,   route: '/laptop', keywords: ['laptop'], fallbackPath: '/laptop' },
+    { label: 'Điện thoại',      icon: MdPhoneIphone, keywords: ['phone', 'điện thoại'], fallbackPath: '/products?category=phone' },
+    { label: 'Đồng hồ thông minh', icon: MdWatch,    keywords: ['watch', 'đồng hồ'], fallbackPath: '/products?category=watch' },
+    { label: 'Tai nghe',        icon: MdHeadset,     keywords: ['headphone', 'tai nghe'], fallbackPath: '/products?category=headphone' },
+    { label: 'Phụ kiện',        icon: MdLocalOffer,  keywords: ['accessory', 'phụ kiện'], fallbackPath: '/products?category=accessory' },
+  ]
+  const handleLogout = () => {
+    logout()
+    setShowUserMenu(false)
   }
 
-  return (
+  const handleAdminClick = () => {
+    setShowUserMenu(false)
+    navigate('/admin')
+  }
+
+  const handleUserClick = () => {
+    navigate('/laptop')
+  }
+
+  const normalize = (value) =>
+    String(value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+
+  const navigateByKeywords = (item) => {
+    const matchedCategory = categoryItems.find((category) => {
+      const name = normalize(category.category_name)
+      return item.keywords?.some((keyword) => name.includes(normalize(keyword)))
+    })
+
+    if (matchedCategory) {
+      navigate(`/categories/${matchedCategory.category_id}`)
+      return true
+    }
+
+    if (item.route) {
+      navigate(item.route)
+      return true
+    }
+
+    if (item.fallbackPath) {
+      navigate(item.fallbackPath)
+      return true
+    }
+
+    return false
+  }
+
+  const handleCategoryGroupClick = (item) => {
+    setShowCategoryMenu(false)
+    if (!navigateByKeywords(item)) {
+      navigate('/')
+    }
+  }
+
+  return (  
     <>
       <div style={styles.headerShell}>
-        {/* Top Bar */}
         <div style={styles.topBar}>
           <div style={styles.topBarTrack}>
             <div style={styles.topBarGroup}>
@@ -94,7 +142,7 @@ export default function Header() {
                 const IconComponent = item.icon
                 return (
                   <span style={styles.topBarItem} key={`topbar-1-${index}`}>
-                    <IconComponent size={16} style={{ marginRight: '6px', flexShrink: 0 }} />
+                    <IconComponent size={16} style={{ marginRight: 6, flexShrink: 0 }} />
                     {item.text}
                     <span style={styles.topBarDivider}>•</span>
                   </span>
@@ -106,7 +154,7 @@ export default function Header() {
                 const IconComponent = item.icon
                 return (
                   <span style={styles.topBarItem} key={`topbar-2-${index}`}>
-                    <IconComponent size={16} style={{ marginRight: '6px', flexShrink: 0 }} />
+                    <IconComponent size={16} style={{ marginRight: 6, flexShrink: 0 }} />
                     {item.text}
                     <span style={styles.topBarDivider}>•</span>
                   </span>
@@ -116,163 +164,220 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Main Header */}
-        <header style={styles.header}>
-          <div style={styles.logo} onClick={() => navigate('/')}>LaptopShop</div>
+        <header style={styles.header} className="header-enhanced-main">
+          <div style={styles.headerInner} className="header-enhanced-inner">
+            <div style={styles.headerLeading} className="header-enhanced-leading">
+              <div style={styles.logo} onClick={() => navigate('/')}>TechMart</div>
 
-          <div style={styles.leftGroup}>
-  <div style={styles.categoryMenuWrap} ref={categoryMenuRef}>
-    <button style={styles.categoryBtn} onClick={() => setShowCategoryMenu((prev) => !prev)}>
-      <FiList size={24} />
-      Danh mục
-    </button>
-    {showCategoryMenu && (
-      <div style={styles.categoryDropdown}>
-        {categoryItems.length === 0 ? (
-          <button style={styles.categoryItem} type="button" disabled>
-            Chưa có danh mục
-          </button>
-        ) : (
-          categoryItems.map((category) => (
-            <button
-              key={category.category_id}
-              style={styles.categoryItem}
-              type="button"
-              onClick={() => handleCategoryClick(category)}
-            >
-              {category.category_name}
-            </button>
-          ))
-        )}
-      </div>
-    )}
-  </div>
-
-  <div style={styles.newsWrapper} onClick={() => navigate('/news')}>
-    <span>Tin tức</span>
-    <div style={styles.newsIcon}>
-      <MdFiberNew size={28} />
-      <span style={styles.newsBadge}>0</span>
-    </div>
-  </div>
-</div>
-
-<div className="header-search-area" style={styles.searchArea}>
-  <SearchSuggestBox />
-</div>
-
-<div style={styles.actions}>
-  <div style={styles.cartWrapper} onClick={() => navigate('/cart')}>
-    <span>Giỏ hàng</span>
-    <div style={styles.cartIcon}>
-      <FiShoppingCart size={28} />
-      <span style={styles.cartBadge}>{getTotalItems()}</span>
-    </div>
-  </div>
-
-  <div style={styles.notificationWrapper} onClick={() => navigate('/notifications')}>
-    <span>Thông báo</span>
-    <div style={styles.notificationIcon}>
-      <FiBell size={28} />
-      {user && unreadCount > 0 ? <span style={styles.notificationBadge}>{unreadCount}</span> : null}
-    </div>
-  </div>
-            {/* Login/User Menu */}
-            {user ? (
-              <div style={styles.userMenu}>
-                <button 
-                  style={styles.userBtn} 
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                >
-                  {user.name}
-                  <FiUser size={24} />
-                </button>
-                {showUserMenu && (
-                  <div style={styles.userDropdown}>
-                    <div style={styles.userInfo}>
-                      <strong>{user.name}</strong>
-                      <span style={styles.userRole}>{user.role === 'admin' ? 'Quản trị viên' : user.role === 'warehouse' ? 'Nhân viên kho' : user.role === 'sales' ? 'Nhân viên bán hàng' : 'Khách hàng'}</span>
-                    </div>
-                    {isAdmin() && (
-                      <button className="user-dropdown-item" onClick={handleAdminClick}>
-                        Trang quản trị
-                      </button>
-                    )}
-                    {isAdmin() &&( <button className="user-dropdown-item" onClick={handleUserClick}>Trang người dùng</button>)}
-                    <button 
-                      className="user-dropdown-item" 
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        navigate('/profile')
-                      }}
-                    >
-                      <FiUser size={16} />
-                      Trang cá nhân
-                    </button>
-                    <button 
-                      className="user-dropdown-item" 
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        navigate('/order-tracking')
-                      }}
-                    >
-                      <FiPackage size={16} />
-                      Theo dõi đơn hàng
-                    </button>
-                    <button className="user-dropdown-item" onClick={handleLogout}>
-                      <FiLogOut size={16} />
-                      Đăng xuất
-                    </button>
+              <div style={styles.leftGroup}>
+                <div style={styles.categoryMenuWrap} ref={categoryMenuRef}>
+                  <button
+                    type="button"
+                    style={styles.categoryBtn}
+                    className="header-enhanced-category-btn"
+                    aria-expanded={showCategoryMenu}
+                    onClick={() => setShowCategoryMenu((prev) => !prev)}
+                  >
+                    <FiList size={20} aria-hidden />
+                    <span>Danh mục</span>
+                  </button>
+                {showCategoryMenu ? (
+                  <div style={styles.categoryDropdown}>
+                    {categoryMenuGroups.map((item) => {
+                      const IconComponent = item.icon
+                      return (
+                        <button
+                          key={item.label}
+                          style={styles.categoryPanelItem}
+                          className="header-enhanced-dropdown-item"
+                          type="button"
+                          onClick={() => handleCategoryGroupClick(item)}
+                        >
+                          <span style={styles.categoryPanelIcon}>
+                            <IconComponent size={22} />
+                          </span>
+                          <span style={styles.categoryPanelLabel}>{item.label}</span>
+                          <FiChevronRight size={18} style={styles.categoryPanelArrow} />
+                        </button>
+                      )
+                    })}
                   </div>
-                )}
+                ) : null}
+                </div>
+
+                <button
+                  type="button"
+                  style={styles.newsWrapper}
+                  className="header-enhanced-news"
+                  onClick={() => navigate('/news')}
+                >
+                  <span style={styles.actionLabel}>Tin tức</span>
+                  <div style={styles.newsIcon}>
+                    <MdFiberNew size={26} aria-hidden />
+                    <span style={styles.newsBadge}>0</span>
+                  </div>
+                </button>
               </div>
-            ) : (
-              <button style={styles.loginBtn} onClick={() => setShowAuth(true)}>
-                Đăng nhập
-                <FiUser size={24} />
+            </div>
+
+            <div style={styles.midColumn} className="header-enhanced-mid">
+              <div className="header-search-area header-enhanced-search" style={styles.searchInMid}>
+                <SearchSuggestBox />
+              </div>
+            </div>
+
+            <div style={styles.actions} className="header-enhanced-actions">
+              <button
+                type="button"
+                style={styles.cartWrapper}
+                className="header-enhanced-action-tile"
+                onClick={() => navigate('/cart')}
+              >
+                <span style={styles.actionLabel}>Giỏ hàng</span>
+                <div style={styles.cartIcon}>
+                  <FiShoppingCart size={24} aria-hidden />
+                  <span style={styles.cartBadge}>{getTotalItems()}</span>
+                </div>
               </button>
-            )}
+
+              <button
+                type="button"
+                style={styles.notificationWrapper}
+                className="header-enhanced-action-tile"
+                onClick={() => navigate('/notifications')}
+              >
+                <span style={styles.actionLabel}>Thông báo</span>
+                <div style={styles.notificationIcon}>
+                  <FiBell size={24} aria-hidden />
+                  {user && unreadCount > 0 ? <span style={styles.notificationBadge}>{unreadCount}</span> : null}
+                </div>
+              </button>
+
+              {user ? (
+                <div style={styles.userMenu}>
+                  <button
+                    type="button"
+                    style={styles.userBtn}
+                    className="header-enhanced-user-btn"
+                    onClick={() => setShowUserMenu((prev) => !prev)}
+                  >
+                    <span style={styles.userBtnText}>{user.name}</span>
+                    <FiUser size={22} aria-hidden />
+                  </button>
+                  {showUserMenu ? (
+                    <div style={styles.userDropdown}>
+                    
+                      {isAdmin() ? (
+                        <button className="user-dropdown-item" onClick={handleAdminClick}>
+                          Trang quản trị
+                        </button>
+                      ) : null}
+                      {isAdmin() ? (
+                        <button className="user-dropdown-item" onClick={handleUserClick}>
+                          Trang người dùng
+                        </button>
+                      ) : null}
+                      <button
+                        className="user-dropdown-item"
+                        onClick={() => {
+                          setShowUserMenu(false)
+                          navigate('/profile')
+                        }}
+                      >
+                        <FiUser size={16} />
+                        Trang cá nhân
+                      </button>
+                      <button
+                        className="user-dropdown-item"
+                        onClick={() => {
+                          setShowUserMenu(false)
+                          navigate('/order-tracking')
+                        }}
+                      >
+                        <FiPackage size={16} />
+                        Theo dõi đơn hàng
+                      </button>
+                      <button className="user-dropdown-item" onClick={handleLogout}>
+                        <FiLogOut size={16} />
+                        Đăng xuất
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <button type="button" style={styles.loginBtn} className="header-enhanced-login" onClick={() => setShowAuth(true)}>
+                  Đăng nhập
+                  <FiUser size={22} aria-hidden />
+                </button>
+              )}
+            </div>
           </div>
         </header>
       </div>
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showAuth ? <AuthModal onClose={() => setShowAuth(false)} /> : null}
     </>
   )
 }
-const styles = {
-  headerShell: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 1100,
-    fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif',
-    boxShadow: '0 10px 24px rgba(0, 0, 0, 0.12)'
-  },
-leftGroup: {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '16px',
-  flexShrink: 0
-},
 
-searchArea: {
-  flex: 1,
-  minWidth: 0,
-  maxWidth: '420px'
-},
-header: {
-  background: '#e30019',
-  color: '#fff',
-  padding: '24px 24px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '24px',
-  width: '100%'
-},
+const styles = {
+  headerLeading: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+    flexShrink: 0,
+    flexWrap: 'wrap',
+    rowGap: '10px'
+  },
+
+  headerShell: {
+    fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif'
+  },
+
+  leftGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexShrink: 0,
+    flexWrap: 'wrap'
+  },
+
+  actionLabel: {
+    fontSize: '12px',
+    fontWeight: 700,
+    letterSpacing: '0.03em',
+    opacity: 0.95,
+    textAlign: 'center',
+    lineHeight: 1.2
+  },
+
+  userBtnText: {
+    maxWidth: '132px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  },
+
+  midColumn: {
+    flex: '1 1 300px',
+    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'center'
+  },
+
+  searchInMid: {
+    width: '100%',
+    maxWidth: '560px',
+    margin: '0 auto',
+    minWidth: 0
+  },
+
   topBar: {
-    background: 'linear-gradient(90deg, #e34d7b 0%, #d70018 55%, #d70018 100%)',
+    background: 'linear-gradient(90deg, #c41e3a 0%, #d70018 45%, #b30f25 100%)',
     color: '#fff',
-    fontSize: '13px',
-    padding: '6px 20px',
+    fontSize: '12px',
+    padding: '8px 20px',
     overflow: 'hidden',
     whiteSpace: 'nowrap'
   },
@@ -303,33 +408,47 @@ header: {
   },
 
   header: {
-    background: '#e30019',
+    background: 'linear-gradient(180deg, #ff0f2f 0%, #e30019 52%, #cf0015 100%)',
     color: '#fff',
-    padding: '24px 24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '24px',
     width: '100%'
   },
 
+  headerInner: {
+    width: '100%',
+    maxWidth: '1440px',
+    margin: '0 auto',
+    padding: '14px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '20px',
+    rowGap: '14px',
+    flexWrap: 'wrap'
+  },
+
   logo: {
-    fontSize: '32px',
-    fontWeight: 'bold',
-    cursor: 'pointer'
+    fontSize: '28px',
+    fontWeight: 800,
+    letterSpacing: '-0.03em',
+    cursor: 'pointer',
+    userSelect: 'none',
+    lineHeight: 1,
+    textShadow: '0 1px 2px rgba(0,0,0,0.12)'
   },
 
   categoryBtn: {
-    background: '#ff4d4f',
-    border: 'none',
-    padding: '14px 24px',
-    borderRadius: '6px',
+    background: 'linear-gradient(180deg, #ff5a5c 0%, #e0182f 100%)',
+    border: '1px solid rgba(255,255,255,0.28)',
+    boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+    padding: '12px 18px',
+    borderRadius: '12px',
     color: '#fff',
     cursor: 'pointer',
-    fontSize: '16px',
+    fontSize: '15px',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: '10px',
+    fontWeight: 700
   },
 
   categoryMenuWrap: {
@@ -338,68 +457,71 @@ header: {
 
   categoryDropdown: {
     position: 'absolute',
-    top: 'calc(100% + 8px)',
+    top: 'calc(100% + 10px)',
     left: 0,
-    minWidth: '220px',
-    maxHeight: '340px',
+    width: 'min(300px, calc(100vw - 32px))',
+    maxHeight: '420px',
     overflowY: 'auto',
     background: '#fff',
-    borderRadius: '10px',
-    boxShadow: '0 10px 28px rgba(0, 0, 0, 0.18)',
+    borderRadius: '16px',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: '0 20px 50px rgba(0, 0, 0, 0.18)',
     zIndex: 1300,
-    padding: '8px 0'
+    padding: '8px'
   },
 
-  categoryItem: {
+  categoryPanelItem: {
     width: '100%',
     border: 'none',
+    borderRadius: '12px',
     background: 'transparent',
-    color: '#0f172a',
+    color: '#2b2f36',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+    padding: '12px 14px',
     textAlign: 'left',
-    fontSize: '14px',
-    padding: '10px 14px',
     cursor: 'pointer'
   },
 
-  searchContainer: {
-    display: 'flex',
+  categoryPanelIcon: {
+    color: '#ff1f3d',
+    display: 'inline-flex',
     alignItems: 'center',
-    width: '350px',
-    background: '#fff',
-    borderRadius: '20px',
-    padding: '0 14px'
+    justifyContent: 'center',
+    flexShrink: 0
   },
 
-  searchIcon: {
-    color: '#999',
-    marginRight: '10px',
-    fontSize: '20px',
-    display: 'flex',
-    alignItems: 'center'
-  },
-
-  searchInput: {
-    width: '100%',
-    padding: '16px 0',
-    border: 'none',
-    outline: 'none',
+  categoryPanelLabel: {
+    flex: 1,
     fontSize: '15px',
-    background: 'transparent'
+    fontWeight: '700',
+    lineHeight: 1.35
+  },
+
+  categoryPanelArrow: {
+    color: '#a6acb7',
+    flexShrink: 0
   },
 
   actions: {
     display: 'flex',
-    alignItems: 'center',
-    gap: '25px'
+    alignItems: 'flex-end',
+    gap: '8px',
+    flexShrink: 0,
+    flexWrap: 'wrap'
   },
 
-  /* Cart */
   cartWrapper: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: '10px',
+    gap: '6px',
     cursor: 'pointer',
-    fontSize: '16px'
+    fontSize: '16px',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    color: '#fff'
   },
 
   cartIcon: {
@@ -413,19 +535,26 @@ header: {
     top: '-6px',
     right: '-10px',
     background: '#ffb800',
-    color: '#fff',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    borderRadius: '50%',
-    padding: '2px 6px'
+    color: '#1a1a1a',
+    fontSize: '11px',
+    fontWeight: 800,
+    borderRadius: '999px',
+    padding: '2px 6px',
+    minWidth: '18px',
+    textAlign: 'center',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
   },
 
   newsWrapper: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: '10px',
+    gap: '6px',
     cursor: 'pointer',
-    fontSize: '16px'
+    fontSize: '16px',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    color: '#fff'
   },
 
   newsIcon: {
@@ -439,19 +568,26 @@ header: {
     top: '-6px',
     right: '-10px',
     background: '#ffb800',
-    color: '#fff',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    borderRadius: '50%',
-    padding: '2px 6px'
+    color: '#1a1a1a',
+    fontSize: '11px',
+    fontWeight: 800,
+    borderRadius: '999px',
+    padding: '2px 6px',
+    minWidth: '18px',
+    textAlign: 'center',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
   },
-  /* Notification */
+
   notificationWrapper: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    gap: '10px',
+    gap: '6px',
     cursor: 'pointer',
-    fontSize: '16px'
+    fontSize: '16px',
+    padding: '4px 10px',
+    borderRadius: '12px',
+    color: '#fff'
   },
 
   notificationIcon: {
@@ -465,30 +601,31 @@ header: {
     top: '-6px',
     right: '-10px',
     background: '#ffb800',
-    color: '#fff',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    borderRadius: '50%',
+    color: '#1a1a1a',
+    fontSize: '11px',
+    fontWeight: 800,
+    borderRadius: '999px',
     padding: '2px 6px',
     minWidth: '20px',
-    textAlign: 'center'
+    textAlign: 'center',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
   },
 
-  /* Login */
   loginBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    background: 'rgba(255,255,255,0.2)',
-    border: 'none',
-    padding: '12px 18px',
+    background: 'rgba(255,255,255,0.22)',
+    border: '1px solid rgba(255,255,255,0.35)',
+    padding: '11px 18px',
     borderRadius: '12px',
     color: '#fff',
     cursor: 'pointer',
-    fontSize: '15px'
+    fontSize: '14px',
+    fontWeight: 600,
+    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
   },
 
-  /* User Menu */
   userMenu: {
     position: 'relative'
   },
@@ -497,14 +634,16 @@ header: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    background: 'rgba(255,255,255,0.2)',
-    border: 'none',
-    padding: '12px 18px',
+    background: 'rgba(255,255,255,0.22)',
+    border: '1px solid rgba(255,255,255,0.35)',
+    padding: '11px 16px',
     borderRadius: '12px',
     color: '#fff',
     cursor: 'pointer',
-    fontSize: '15px',
-    fontWeight: '500'
+    fontSize: '14px',
+    fontWeight: 600,
+    maxWidth: '220px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
   },
 
   userDropdown: {
@@ -513,9 +652,10 @@ header: {
     right: 0,
     marginTop: '8px',
     background: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    minWidth: '200px',
+    borderRadius: '14px',
+    border: '1px solid rgba(0,0,0,0.06)',
+    boxShadow: '0 16px 40px rgba(0,0,0,0.14)',
+    minWidth: '220px',
     zIndex: 1000,
     overflow: 'hidden'
   },

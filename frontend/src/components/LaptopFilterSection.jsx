@@ -2,6 +2,7 @@ import "../styles/LaptopFilterSection.css"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { buildApiUrl } from "../config/api"
+import { detectScopeByDeviceType, detectScopeByCategoryName } from "../utils/adminScope"
 // const brands = [
 //   "MacBook",
 //   "ASUS",
@@ -31,43 +32,73 @@ const resolveLogoUrl = (url) => {
 //   { title: "Laptop AI", img: "https://cdn2.cellphones.com.vn/insecure/rs:fill:150:0/q:70/plain/https://cellphones.com.vn/media/wysiwyg/image_5__3.png" },
 // ]
 
-export default function LaptopFilterSection() {
+export default function LaptopFilterSection({
+  sectionTitle = "Máy tính laptop",
+  deviceType = "LAPTOP",
+  includeUnassigned = false,
+}) {
   const [brands, setBrands] = useState([])
   const navigate = useNavigate()
   const [category, setCategory] = useState([])
+
+  const normalizeText = (value) => String(value || "").trim().toLowerCase()
+
   useEffect(() => {
-    const loadBrands = async () => {
+    const loadLaptopFacets = async () => {
       try {
-        const res = await fetch(buildApiUrl("/api/brands"))
-        const data = await res.json().catch(() => ({}))
-        const list = Array.isArray(data?.data) ? data.data : []
-        setBrands(list)
+        const [productsRes, brandsRes, categoriesRes] = await Promise.all([
+          fetch(buildApiUrl(`/api/products?deviceType=${encodeURIComponent(deviceType)}&limit=200`)),
+          fetch(buildApiUrl("/api/brands")),
+          fetch(buildApiUrl("/api/product-categories")),
+        ])
+
+        const productsData = await productsRes.json().catch(() => ({}))
+        const brandsData = await brandsRes.json().catch(() => ({}))
+        const categoriesData = await categoriesRes.json().catch(() => ({}))
+
+        const products = Array.isArray(productsData?.data) ? productsData.data : []
+        const allBrands = Array.isArray(brandsData?.data) ? brandsData.data : []
+        const allCategories = Array.isArray(categoriesData?.data) ? categoriesData.data : []
+
+        const laptopBrandNameSet = new Set(
+          products.map((item) => normalizeText(item?.brand_name)).filter(Boolean)
+        )
+        const laptopCategoryNameSet = new Set(
+          products.map((item) => normalizeText(item?.category_name)).filter(Boolean)
+        )
+
+        const targetScope = detectScopeByDeviceType(deviceType)
+
+        if (includeUnassigned && targetScope) {
+          setBrands(allBrands)
+          setCategory(
+            allCategories.filter((item) => {
+              const name = item?.category_name
+              return detectScopeByCategoryName(name) === targetScope || laptopCategoryNameSet.has(normalizeText(name))
+            })
+          )
+          return
+        }
+
+        setBrands(
+          allBrands.filter((brand) => laptopBrandNameSet.has(normalizeText(brand?.brand_name)))
+        )
+
+        setCategory(
+          allCategories.filter((item) => laptopCategoryNameSet.has(normalizeText(item?.category_name)))
+        )
       } catch {
         setBrands([])
-      }
-    }
-
-    loadBrands()
-  }, [])
-
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const res = await fetch(buildApiUrl("/api/product-categories"))
-        const data = await res.json().catch(() => ({}))
-        const list = Array.isArray(data?.data) ? data.data : []
-        setCategory(list)
-      } catch {
         setCategory([])
       }
     }
 
-    loadCategories()
-  }, [])
+    loadLaptopFacets()
+  }, [deviceType, includeUnassigned])
 
   return (
     <div className="filter-wrapper">
-      <h2 className="section-title">Máy tính laptop</h2>
+      <h2 className="section-title">{sectionTitle}</h2>
       <div className="brand-list">
         {brands.map((brand) => (
           <div

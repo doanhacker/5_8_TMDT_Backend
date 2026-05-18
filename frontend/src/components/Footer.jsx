@@ -74,7 +74,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-bottom">
-        © 2026 LaptopShop. All rights reserved.
+        © 2026 TechMart. All rights reserved.
       </div>
     </footer>
   )
