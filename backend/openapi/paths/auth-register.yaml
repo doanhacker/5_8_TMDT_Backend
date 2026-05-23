@@ -1,0 +1,113 @@
+post:
+  summary: Đăng ký tài khoản người dùng mới
+  tags:
+    - Authentication
+  description: Tạo tài khoản mới cho người dùng và trả về JWT token
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - email
+            - password
+            - full_name
+          properties:
+            email:
+              type: string
+              format: email
+              description: Email đăng nhập
+              example: user@example.com
+            password:
+              type: string
+              format: password
+              description: Mật khẩu (tối thiểu 6 ký tự)
+              example: password123
+            full_name:
+              type: string
+              description: Họ và tên đầy đủ
+              example: Nguyễn Văn A
+            phone_number:
+              type: string
+              description: Số điện thoại
+              example: "0901234567"
+        examples:
+          example1:
+            value:
+              email: user@example.com
+              password: password123
+              full_name: Nguyễn Văn A
+              phone_number: "0901234567"
+  responses:
+    '201':
+      description: Đăng ký thành công
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              message:
+                type: string
+                example: Đăng ký tài khoản thành công
+              data:
+                type: object
+                properties:
+                  user:
+                    $ref: ../components/schemas/user.yaml
+                  token:
+                    type: string
+                    description: JWT token để authentication
+          examples:
+            success:
+              value:
+                success: true
+                message: Đăng ký tài khoản thành công
+                data:
+                  user:
+                    user_id: 2
+                    email: user@example.com
+                    full_name: Nguyễn Văn A
+                    phone_number: "0901234567"
+                    status: ACTIVE
+                    created_at: 2026-03-03T10:00:00.000Z
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    '400':
+      description: Thiếu thông tin hoặc dữ liệu không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml
+          examples:
+            missingFields:
+              value:
+                success: false
+                message: Thiếu thông tin bắt buộc email, password, full_name
+            invalidEmail:
+              value:
+                success: false
+                message: Email không hợp lệ
+            shortPassword:
+              value:
+                success: false
+                message: Mật khẩu phải có ít nhất 6 ký tự
+    '409':
+      description: Email đã được đăng ký
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml
+          examples:
+            duplicate:
+              value:
+                success: false
+                message: Email đã được đăng ký
+    '500':
+      description: Lỗi máy chủ
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml

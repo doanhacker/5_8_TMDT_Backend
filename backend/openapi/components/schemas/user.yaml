@@ -1,0 +1,31 @@
+type: object
+properties:
+  user_id:
+    type: integer
+    description: ID người dùng
+    example: 1
+  email:
+    type: string
+    format: email
+    description: Email đăng nhập
+    example: user@example.com
+  full_name:
+    type: string
+    description: Họ và tên
+    example: Nguyễn Văn A
+  phone_number:
+    type: string
+    description: Số điện thoại
+    example: "0901234567"
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - LOCKED
+    description: Trạng thái tài khoản
+    example: ACTIVE
+  created_at:
+    type: string
+    format: date-time
+    description: Thời gian tạo tài khoản
+    example: 2026-03-03T10:00:00.000Z

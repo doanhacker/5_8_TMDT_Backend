@@ -1,0 +1,22 @@
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px 0;
+}
+
+.page-btn {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 32px;
+}
+
+.page-btn.active,
+.page-btn:hover {
+  background: #e30019;
+  color: #fff;
+  border-color: #e30019;
+}

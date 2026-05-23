@@ -1,0 +1,538 @@
+.ot-container {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 20px;
+}
+
+.ot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.ot-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.ot-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.ot-back-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.ot-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.ot-empty {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.ot-empty > svg {
+  color: #cbd5e1;
+  opacity: 0.6;
+}
+
+.ot-empty h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.ot-empty p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.ot-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ot-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.ot-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Grid layout */
+.ot-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+}
+
+.ot-orders-list h2,
+.ot-tracking-detail h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 16px;
+}
+
+/* Orders list */
+.ot-orders-list {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.ot-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.ot-order-card {
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fbfcff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ot-order-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  transform: translateX(4px);
+}
+
+.ot-order-card.active {
+  border-color: #667eea;
+  background: #eef2ff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.ot-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.ot-order-id {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.ot-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.ot-status.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ot-status.status-waiting-stock {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.ot-status.status-preparing {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ot-status.status-shipping {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.ot-status.status-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ot-status.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.ot-order-customer {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin: 4px 0;
+}
+
+.ot-order-total {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin: 4px 0;
+}
+
+.ot-order-date {
+  font-size: 12px;
+  color: #64748b;
+  margin: 4px 0;
+}
+
+/* Tracking detail */
+.ot-tracking-detail {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.ot-tracking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.ot-status-large {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+/* Order info */
+.ot-order-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.ot-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ot-info-item label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ot-info-item p {
+  margin: 0;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.ot-info-item small {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.ot-info-item-full {
+  grid-column: 1 / -1;
+}
+
+.ot-shipping-address-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.ot-shipping-address-card h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.ot-shipping-note {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+}
+
+.ot-address-edit-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ot-address-select {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+  color: #0f172a;
+  background: #fff;
+}
+
+.ot-address-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+}
+
+.ot-address-message {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ot-address-message.success {
+  color: #166534;
+}
+
+.ot-address-message.error {
+  color: #b91c1c;
+}
+
+.ot-amount {
+  color: #1d4ed8;
+  font-size: 16px !important;
+}
+
+/* Timeline */
+.ot-timeline h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 20px;
+}
+
+.ot-steps {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ot-step {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.ot-step:last-child {
+  padding-bottom: 0;
+}
+
+.ot-step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.ot-step.completed .ot-step-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: #fff;
+}
+
+.ot-step.active .ot-step-icon {
+  background: #fff;
+  border-color: #667eea;
+  color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.ot-step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.ot-step-content h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ot-step-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.ot-step.active .ot-step-content h4 {
+  color: #667eea;
+}
+
+.ot-step-line {
+  position: absolute;
+  left: 21px;
+  top: 44px;
+  width: 2px;
+  height: 52px;
+  background: #e2e8f0;
+  transition: all 0.2s;
+}
+
+.ot-step-line.completed {
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Cancelled notice */
+.ot-cancelled-notice {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: #fee2e2;
+  border-left: 4px solid #dc2626;
+  border-radius: 8px;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Additional info */
+.ot-additional-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.ot-tag {
+  display: inline-block;
+  padding: 6px 12px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .ot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ot-orders-list {
+    max-height: auto;
+  }
+
+  .ot-orders {
+    max-height: auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ot-container {
+    padding: 12px;
+  }
+
+  .ot-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ot-header h1 {
+    font-size: 22px;
+  }
+
+  .ot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ot-orders {
+    grid-template-columns: 1fr;
+  }
+
+  .ot-order-info {
+    grid-template-columns: 1fr;
+  }
+
+  .ot-address-edit-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ot-tracking-detail {
+    padding: 16px;
+  }
+
+  .ot-step {
+    gap: 12px;
+  }
+
+  .ot-step-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ot-step-line {
+    left: 19px;
+  }
+}

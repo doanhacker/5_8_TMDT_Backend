@@ -1,0 +1,39 @@
+openapi: 3.0.0
+info:
+  title: Laptop E-commerce API
+  version: 1.0.0
+  description: API Documentation cho hệ thống E-commerce bán laptop
+  contact:
+    name: API Support
+    email: support@laptop-shop.com
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: http://localhost:5000/api
+    description: API Base URL
+
+tags:
+  - name: Authentication
+    description: API đăng ký và đăng nhập người dùng
+  - name: Sliders
+    description: Quản lý banner sliders trên trang chủ
+
+paths:
+  /api/auth/register:
+    $ref: ./paths/auth-register.yaml
+  /api/auth/login:
+    $ref: ./paths/auth-login.yaml
+  /api/sliders:
+    $ref: ./paths/sliders.yaml
+
+components:
+  schemas:
+    User:
+      $ref: ./components/schemas/user.yaml
+    Slider:
+      $ref: ./components/schemas/slider.yaml
+    SuccessResponse:
+      $ref: ./components/schemas/success-response.yaml
+    ErrorResponse:
+      $ref: ./components/schemas/error-response.yaml

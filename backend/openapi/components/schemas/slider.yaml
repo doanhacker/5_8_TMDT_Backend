@@ -1,0 +1,33 @@
+type: object
+required:
+  - title
+  - image_url
+properties:
+  slider_id:
+    type: integer
+    description: ID tự động tăng của slider
+    example: 1
+  title:
+    type: string
+    description: Tiêu đề của slider
+    example: Summer Sale 2024
+  image_url:
+    type: string
+    description: URL hình ảnh slider
+    example: https://example.com/banner.jpg
+  link_url:
+    type: string
+    description: URL liên kết khi click vào slider
+    example: https://example.com/sale
+  display_order:
+    type: integer
+    description: Thứ tự hiển thị
+    example: 1
+  is_active:
+    type: boolean
+    description: Trạng thái kích hoạt
+    example: true
+  created_at:
+    type: string
+    format: date-time
+    description: Thời gian tạo

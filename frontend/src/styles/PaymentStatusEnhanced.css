@@ -1,0 +1,99 @@
+.pay-status-page {
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
+}
+
+.pay-status-card {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 28px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.pay-status-icon {
+  font-size: 72px;
+  margin-bottom: 12px;
+}
+
+.pay-status-success .pay-status-icon {
+  color: #16a34a;
+}
+
+.pay-status-failed .pay-status-icon {
+  color: #dc2626;
+}
+
+.pay-status-card h1 {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 28px;
+}
+
+.pay-status-card p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.pay-status-meta {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  color: #334155;
+}
+
+.pay-status-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pay-status-btn {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.pay-status-btn-primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .pay-status-card {
+    padding: 22px 18px;
+  }
+
+  .pay-status-actions {
+    flex-direction: column;
+  }
+
+  .pay-status-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

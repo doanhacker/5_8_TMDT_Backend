@@ -1,0 +1,52 @@
+.admin-container{
+width:900px;
+margin:auto;
+padding:20px;
+}
+
+.brand-form{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+}
+
+.brand-form input{
+padding:8px;
+flex:1;
+}
+
+.brand-form button{
+padding:8px 16px;
+background:#007bff;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+.brand-table{
+width:100%;
+border-collapse:collapse;
+}
+
+.brand-table th,
+.brand-table td{
+border:1px solid #ddd;
+padding:10px;
+text-align:center;
+}
+
+.edit-btn{
+background:orange;
+border:none;
+padding:6px 10px;
+margin-right:5px;
+cursor:pointer;
+}
+
+.delete-btn{
+background:red;
+border:none;
+padding:6px 10px;
+color:white;
+cursor:pointer;
+}

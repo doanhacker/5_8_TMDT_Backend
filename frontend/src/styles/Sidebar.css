@@ -1,0 +1,27 @@
+.sidebar-wrapper {
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  width: 200px;
+}
+
+.sidebar-wrapper h3 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.sidebar-wrapper ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar-wrapper li {
+  padding: 6px 0;
+  cursor: pointer;
+  color: #333;
+}
+
+.sidebar-wrapper li:hover {
+  color: #e30019;
+}

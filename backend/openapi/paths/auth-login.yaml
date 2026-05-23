@@ -1,0 +1,122 @@
+post:
+  summary: Đăng nhập tài khoản
+  tags:
+    - Authentication
+  description: Đăng nhập bằng email và password, trả về JWT token
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              format: email
+              description: Email đăng nhập
+              example: user@example.com
+            password:
+              type: string
+              format: password
+              description: Mật khẩu
+              example: password123
+        examples:
+          example1:
+            value:
+              email: user@example.com
+              password: password123
+  responses:
+    '200':
+      description: Đăng nhập thành công
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              message:
+                type: string
+                example: Đăng nhập thành công
+              data:
+                type: object
+                properties:
+                  user:
+                    allOf:
+                      - $ref: ../components/schemas/user.yaml
+                      - type: object
+                        properties:
+                          roles:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                role_id:
+                                  type: integer
+                                  example: 3
+                                role_name:
+                                  type: string
+                                  example: CUSTOMER
+                  token:
+                    type: string
+                    description: JWT token
+          examples:
+            success:
+              value:
+                success: true
+                message: Đăng nhập thành công
+                data:
+                  user:
+                    user_id: 2
+                    email: user@example.com
+                    full_name: Nguyễn Văn A
+                    phone_number: "0901234567"
+                    status: ACTIVE
+                    created_at: 2026-03-03T10:00:00.000Z
+                    roles:
+                      - role_id: 3
+                        role_name: CUSTOMER
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    '400':
+      description: Thiếu email hoặc password
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml
+          examples:
+            missingData:
+              value:
+                success: false
+                message: Thiếu email hoặc password
+    '401':
+      description: Email hoặc mật khẩu không đúng
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml
+          examples:
+            invalidCredentials:
+              value:
+                success: false
+                message: Email hoặc mật khẩu không đúng
+    '403':
+      description: Tài khoản bị khóa
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml
+          examples:
+            locked:
+              value:
+                success: false
+                message: Tài khoản đã bị khóa
+    '500':
+      description: Lỗi máy chủ
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml

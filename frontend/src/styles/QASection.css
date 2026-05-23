@@ -1,0 +1,264 @@
+.qa-wrapper {
+  max-width: 1200px;
+  margin: 80px auto;
+  padding: 0 40px;
+}
+
+.qa-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.qa-wrapper h2 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.qa-subtitle {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+/* Form Section */
+.qa-form {
+  display: flex;
+  gap: 32px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%);
+  padding: 40px;
+  border-radius: 12px;
+  margin-bottom: 50px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  align-items: center;
+}
+
+.qa-form-left {
+  flex-shrink: 0;
+}
+
+.qa-form-left img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+
+.qa-form-right {
+  flex: 1;
+}
+
+.qa-form-right h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.qa-form-right p {
+  font-size: 15px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.qa-input-group {
+  display: flex;
+  gap: 12px;
+}
+
+.qa-input-group input {
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.qa-input-group input:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.qa-submit-btn {
+  background: #e30019;
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.qa-submit-btn:hover {
+  background: #c10016;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(227, 0, 25, 0.2);
+}
+
+/* Q&A List */
+.qa-list {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.qa-list-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  padding: 32px 32px 20px 32px;
+  margin: 0 0 20px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.qa-items {
+  padding: 0;
+}
+
+.qa-item {
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s;
+}
+
+.qa-item:last-child {
+  border-bottom: none;
+}
+
+.qa-item-header {
+  padding: 24px 32px;
+  cursor: pointer;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: all 0.2s;
+}
+
+.qa-item-header:hover {
+  background: #f9f9f9;
+}
+
+.qa-item.expanded .qa-item-header {
+  background: #f9f9f9;
+}
+
+.qa-item-title {
+  flex: 1;
+  margin: 0;
+}
+
+.qa-user-info {
+  font-size: 13px;
+  color: #999;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.qa-question {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.qa-chevron {
+  color: #999;
+  flex-shrink: 0;
+  transition: transform 0.3s;
+  margin-top: 2px;
+}
+
+.qa-item.expanded .qa-chevron {
+  transform: rotate(180deg);
+}
+
+/* Expanded content */
+.qa-item-body {
+  padding: 0 32px 24px 32px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.qa-reply {
+  background: #f5f7fa;
+  border-left: 4px solid #0066cc;
+  padding: 18px 20px;
+  border-radius: 6px;
+}
+
+.qa-reply-header {
+  font-weight: 700;
+  color: #0066cc;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.qa-reply-text {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .qa-wrapper {
+    margin: 50px auto;
+    padding: 0 20px;
+  }
+
+  .qa-header {
+    margin-bottom: 30px;
+  }
+
+  .qa-wrapper h2 {
+    font-size: 24px;
+  }
+
+  .qa-form {
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    margin-bottom: 30px;
+  }
+
+  .qa-form-left img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .qa-input-group {
+    flex-direction: column;
+  }
+
+  .qa-item-header {
+    padding: 18px;
+    flex-direction: column;
+  }
+
+  .qa-item-body {
+    padding: 0 18px 18px 18px;
+  }
+
+  .qa-list-title {
+    padding: 20px;
+    font-size: 18px;
+  }
+}

@@ -1,0 +1,54 @@
+.watch-filter-wrapper {
+  background: #f5f5f5;
+}
+
+.watch-brand-list {
+  margin-bottom: 28px;
+}
+
+.watch-brand-pill {
+  width: auto;
+  min-width: 100px;
+  height: auto;
+  min-height: 54px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.watch-brand-pill.is-active {
+  border-color: #e30019;
+  box-shadow: 0 0 0 1px #e30019;
+  color: #e30019;
+}
+
+.watch-brand-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.watch-need-card {
+  width: 170px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+  font: inherit;
+  background: #fff;
+}
+
+.watch-need-card:hover {
+  border-color: #e30019;
+}
+
+.watch-need-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.watch-need-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.35;
+}

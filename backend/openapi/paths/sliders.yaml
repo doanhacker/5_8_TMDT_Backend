@@ -1,0 +1,145 @@
+get:
+  summary: Lấy danh sách tất cả sliders
+  tags:
+    - Sliders
+  description: API lấy tất cả các slider đang có trong hệ thống
+  responses:
+    '200':
+      description: Lấy dữ liệu thành công
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              message:
+                type: string
+                example: Lấy dữ liệu thành công
+              data:
+                type: array
+                items:
+                  $ref: ../components/schemas/slider.yaml
+          examples:
+            success:
+              value:
+                success: true
+                message: Lấy dữ liệu thành công
+                data:
+                  - slider_id: 1
+                    title: Summer Sale 2024
+                    image_url: https://example.com/banner1.jpg
+                    link_url: https://example.com/sale
+                    display_order: 1
+                    is_active: true
+                    created_at: 2024-01-01T00:00:00.000Z
+                  - slider_id: 2
+                    title: Black Friday
+                    image_url: https://example.com/banner2.jpg
+                    link_url: https://example.com/blackfriday
+                    display_order: 2
+                    is_active: true
+                    created_at: 2024-01-02T00:00:00.000Z
+    '500':
+      description: Lỗi máy chủ
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml
+
+post:
+  summary: Tạo mới một slider
+  tags:
+    - Sliders
+  description: API thêm slider mới vào hệ thống
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - title
+            - image_url
+          properties:
+            title:
+              type: string
+              description: Tiêu đề của slider
+              example: Khuyến mãi mùa hè 2024
+            image_url:
+              type: string
+              description: URL hình ảnh
+              example: https://example.com/banner.jpg
+            link_url:
+              type: string
+              description: URL liên kết
+              example: https://example.com/sale
+            display_order:
+              type: integer
+              description: Thứ tự hiển thị
+              example: 1
+            is_active:
+              type: boolean
+              description: Trạng thái kích hoạt
+              example: true
+        examples:
+          example1:
+            value:
+              title: Khuyến mãi Black Friday
+              image_url: https://example.com/blackfriday.jpg
+              link_url: https://example.com/blackfriday
+              display_order: 2
+              is_active: true
+  responses:
+    '201':
+      description: Thêm slider thành công
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: true
+              message:
+                type: string
+                example: Thêm Slider mới thành công!
+              data:
+                $ref: ../components/schemas/slider.yaml
+          examples:
+            success:
+              value:
+                success: true
+                message: Thêm Slider mới thành công!
+                data:
+                  id: 3
+                  title: Khuyến mãi Black Friday
+                  image_url: https://example.com/blackfriday.jpg
+                  link_url: https://example.com/blackfriday
+                  display_order: 2
+                  is_active: true
+    '400':
+      description: Thiếu thông tin bắt buộc
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Thiếu thông tin bắt buộc title hoặc image_url
+          examples:
+            missingFields:
+              value:
+                success: false
+                message: Thiếu thông tin bắt buộc title hoặc image_url
+    '500':
+      description: Lỗi máy chủ
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/error-response.yaml

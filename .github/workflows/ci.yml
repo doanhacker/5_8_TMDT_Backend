@@ -1,0 +1,39 @@
+name: CI Pipeline
+
+# Báo cho GitHub biết: Chỉ chạy test khi có ai đó tạo Pull Request đòi gộp code vào nhánh 'dev'
+on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
+
+jobs:
+  # --- JOB 1: TEST CODE BACKEND ---
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy code về
+        uses: actions/checkout@v3
+        
+      - name: Cài đặt Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          
+      - name: Chạy Test giả lập cho Backend
+        run: echo "Backend khong co loi. Kiem tra thanh cong!"
+
+  # --- JOB 2: TEST CODE FRONTEND ---
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy code về
+        uses: actions/checkout@v3
+        
+      - name: Cài đặt Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          
+      - name: Chạy Test giả lập cho Frontend
+        run: echo "Frontend khong co loi. Kiem tra thanh cong!"

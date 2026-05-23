@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Product Image URL - Product ID 2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 30px; }
+        .image-test {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .image-test img {
+            max-width: 300px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        .image-test .info {
+            flex: 1;
+        }
+        .success { color: #22c55e; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+        .url-display {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .loading {
+            color: #3b82f6;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 Test Image URL cho Sản phẩm ID = 2</h1>
+        <p>Test xem ảnh sản phẩm có được load đúng từ backend không.</p>
+    </div>
+
+    <div class="card">
+        <h2>📝 Raw API Response</h2>
+        <div class="loading" id="api-loading">Đang load dữ liệu từ API...</div>
+        <pre id="api-response"></pre>
+    </div>
+
+    <div class="card">
+        <h2>🖼️ Ảnh cấp sản phẩm (Product-level Images)</h2>
+        <div id="product-images"></div>
+    </div>
+
+    <div class="card">
+        <h2>🎨 Ảnh variants</h2>
+        <div id="variant-images"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        
+        // Helper function để build full image URL (giống như trong api.js)
+        function getImageUrl(imageUrl) {
+            if (!imageUrl) return 'https://via.placeholder.com/300?text=No+Image';
+            if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                return imageUrl;
+            }
+            return `${API_BASE_URL}${imageUrl.startsWith('/') ? imageUrl : '/' + imageUrl}`;
+        }
+
+        async function testProductImages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/products/2`);
+                const result = await response.json();
+                
+                document.getElementById('api-loading').style.display = 'none';
+                document.getElementById('api-response').textContent = JSON.stringify(result, null, 2);
+
+                if (!result.success) {
+                    document.getElementById('product-images').innerHTML = 
+                        `<p class="error">❌ API Error: ${result.message}</p>`;
+                    return;
+                }
+
+                const product = result.data;
+
+                // Test product-level images
+                const productImagesDiv = document.getElementById('product-images');
+                if (product.images && product.images.length > 0) {
+                    productImagesDiv.innerHTML = product.images.map(img => {
+                        const fullUrl = getImageUrl(img.image_url);
+                        const isPrimary = img.is_primary ? '⭐ Primary' : '';
+                        return `
+                            <div class="image-test">
+                                <img src="${fullUrl}" 
+                                     alt="Product Image ${img.image_id}"
+                                     onerror="this.style.border='3px solid red'; this.alt='❌ Failed to load';">
+                                <div class="info">
+                                    <h3>Image ID: ${img.image_id} ${isPrimary}</h3>
+                                    <p><strong>Relative URL từ API:</strong></p>
+                                    <div class="url-display">${img.image_url}</div>
+                                    <p><strong>Full URL (sau transform):</strong></p>
+                                    <div class="url-display">${fullUrl}</div>
+                                    <p class="success">✅ Nếu ảnh hiển thị phía bên → Fix thành công!</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    productImagesDiv.innerHTML = '<p class="error">⚠️ Không có ảnh cấp sản phẩm</p>';
+                }
+
+                // Test variant images
+                const variantImagesDiv = document.getElementById('variant-images');
+                if (product.variants && product.variants.length > 0) {
+                    variantImagesDiv.innerHTML = product.variants.map(variant => {
+                        if (!variant.images || variant.images.length === 0) {
+                            return `<p>Variant ${variant.variant_id} (${variant.sku}): Không có ảnh</p>`;
+                        }
+                        return variant.images.map(img => {
+                            const fullUrl = getImageUrl(img.image_url);
+                            const isPrimary = img.is_primary ? '⭐ Primary' : '';
+                            return `
+                                <div class="image-test">
+                                    <img src="${fullUrl}" 
+                                         alt="Variant Image"
+                                         onerror="this.style.border='3px solid red'; this.alt='❌ Failed to load';">
+                                    <div class="info">
+                                        <h3>Variant ID: ${variant.variant_id} - Image ${img.image_id} ${isPrimary}</h3>
+                                        <p><strong>SKU:</strong> ${variant.sku}</p>
+                                        <p><strong>Relative URL từ API:</strong></p>
+                                        <div class="url-display">${img.image_url}</div>
+                                        <p><strong>Full URL (sau transform):</strong></p>
+                                        <div class="url-display">${fullUrl}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }).join('');
+                } else {
+                    variantImagesDiv.innerHTML = '<p>Không có variants</p>';
+                }
+
+            } catch (error) {
+                document.getElementById('api-loading').style.display = 'none';
+                document.getElementById('api-response').textContent = `Error: ${error.message}`;
+                document.getElementById('product-images').innerHTML = 
+                    `<p class="error">❌ Lỗi khi gọi API: ${error.message}</p>`;
+            }
+        }
+
+        // Run test on page load
+        testProductImages();
+    </script>
+</body>
+</html>
