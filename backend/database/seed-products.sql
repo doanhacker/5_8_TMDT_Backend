@@ -105,6 +105,7 @@ INSERT INTO products (product_id, product_name, brand_id, category_id, original_
 (8008, 'Kính cường lực Nillkin 9H', (SELECT brand_id FROM brands WHERE brand_name='Nillkin'), (SELECT category_id FROM categories WHERE category_name='Phụ kiện'), 350000, 250000, 45, 'IN_STOCK', '<p>Nillkin 9H Glass - Kính chống xước</p>', '9H cứng, phủ oleophobic, dễ dán')
 ON DUPLICATE KEY UPDATE product_name = VALUES(product_name);
 
+
 -- =========================================================================
 -- STEP 6: SMARTWATCHES (IDs 7001-7008)
 -- =========================================================================
@@ -122,6 +123,7 @@ ON DUPLICATE KEY UPDATE product_name = VALUES(product_name);
 -- =========================================================================
 -- STEP 7: MONITORS & PRINTERS (IDs 6001-6008)
 -- =========================================================================
+
 INSERT INTO products (product_id, product_name, brand_id, category_id, original_price, discount_price, stock_quantity, status, description_html, highlight_features) VALUES
 (6001, 'LG UltraWide 38UP550-W', (SELECT brand_id FROM brands WHERE brand_name='LG'), (SELECT category_id FROM categories WHERE category_name='Màn hình, Máy in'), 12990000, 11490000, 8, 'IN_STOCK', '<p>LG 38 Inch UltraWide - Màn hình siêu rộng</p>', '38 inch 3440x1440, 160W USB-C, Thunderbolt'),
 (6002, 'Dell UltraSharp 32 U3224PVU', (SELECT brand_id FROM brands WHERE brand_name='Dell'), (SELECT category_id FROM categories WHERE category_name='Màn hình, Máy in'), 8990000, 7990000, 10, 'IN_STOCK', '<p>Dell UltraSharp 32 4K - Màn hình 4K USB-C</p>', '32 inch 4K, 90W USB-C, calibrated'),
@@ -136,6 +138,8 @@ ON DUPLICATE KEY UPDATE product_name = VALUES(product_name);
 -- =========================================================================
 -- STEP 8: SIM & TOP-UP CARDS (IDs 5001-5008)
 -- =========================================================================
+
+
 INSERT INTO products (product_id, product_name, brand_id, category_id, original_price, discount_price, stock_quantity, status, description_html, highlight_features) VALUES
 (5001, 'SIM Viettel 30GB/tháng + Gọi KG', (SELECT brand_id FROM brands WHERE brand_name='Viettel'), (SELECT category_id FROM categories WHERE category_name='Sim, Thẻ cào'), 89000, 79000, 100, 'IN_STOCK', '<p>SIM Viettel Combo - Gọi miễn phí</p>', '30GB/tháng, gọi miễn phí, số VIP'),
 (5002, 'SIM Mobifone 20GB + 100 Phút', (SELECT brand_id FROM brands WHERE brand_name='Mobifone'), (SELECT category_id FROM categories WHERE category_name='Sim, Thẻ cào'), 79000, 69000, 120, 'IN_STOCK', '<p>SIM Mobifone - Cân bằng giá</p>', '20GB, 100 phút gọi, kích hoạt nhanh'),
@@ -147,7 +151,7 @@ INSERT INTO products (product_id, product_name, brand_id, category_id, original_
 (5008, 'Gói Data Mobifone 10GB 1 Tháng', (SELECT brand_id FROM brands WHERE brand_name='Mobifone'), (SELECT category_id FROM categories WHERE category_name='Sim, Thẻ cào'), 99000, 89000, 150, 'IN_STOCK', '<p>Gói Data Mobifone 10GB - Tiết kiệm</p>', '10GB, 1 tháng, sử dụng liên tục')
 ON DUPLICATE KEY UPDATE product_name = VALUES(product_name);
 
--- =========================================================================
+-- =========================================================================    
 -- STEP 9: UTILITY SERVICES (IDs 4001-4008)
 -- =========================================================================
 INSERT INTO products (product_id, product_name, brand_id, category_id, original_price, discount_price, stock_quantity, status, description_html, highlight_features) VALUES
@@ -246,5 +250,6 @@ INSERT INTO product_images (product_id, image_url, is_primary) VALUES
 (9905, 'https://images.unsplash.com/photo-1544716278-ca5e3af4abd8?w=500&q=80', 1),
 (9906, 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=500&q=80', 1)
 ON DUPLICATE KEY UPDATE image_url = VALUES(image_url);
+
 
 COMMIT;

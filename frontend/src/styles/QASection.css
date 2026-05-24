@@ -101,6 +101,26 @@
   box-shadow: 0 4px 12px rgba(227, 0, 25, 0.2);
 }
 
+.qa-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.qa-form-message {
+  font-size: 14px;
+  margin: 10px 0 0 0;
+}
+
+.qa-form-message.success {
+  color: #117a3d;
+}
+
+.qa-form-message.error {
+  color: #b42318;
+}
+
 /* Q&A List */
 .qa-list {
   background: white;
@@ -201,6 +221,11 @@
   border-left: 4px solid #0066cc;
   padding: 18px 20px;
   border-radius: 6px;
+}
+
+.qa-reply.pending {
+  border-left-color: #94a3b8;
+  background: #f8fafc;
 }
 
 .qa-reply-header {

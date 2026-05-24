@@ -15,6 +15,7 @@ import { useCart } from "../context/CartContext"
 import { useProducts } from "../context/ProductContext"
 import FilterBar from "../components/FilterBar"
 import LaptopFilterSection from "../components/LaptopFilterSection"
+import QASection from "../components/QASection"
 import Footer from "../components/Footer"
 import "../styles/NewsPhone.css"
 import { isProductInScope } from "../utils/adminScope"
@@ -196,6 +197,7 @@ export default function AccessoriesPage() {
     setFilters(newFilters)
     setSortBy(newSortBy)
   }
+          <QASection title="Hỏi & Đáp - Phụ kiện" subtitle="Tư vấn tai nghe, sạc, cáp, chuột, hub và các phụ kiện công nghệ" introTitle="Cần chọn phụ kiện phù hợp?" introText="Đặt câu hỏi để được hỗ trợ nhanh hơn khi mua phụ kiện." listTitle="Câu hỏi gần đây" />
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()

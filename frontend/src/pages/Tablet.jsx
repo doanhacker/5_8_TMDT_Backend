@@ -13,6 +13,7 @@ import { useCart } from "../context/CartContext"
 import { useProducts } from "../context/ProductContext"
 import Footer from "../components/Footer"
 import LaptopFilterSection from "../components/LaptopFilterSection"
+import QASection from "../components/QASection"
 import { isProductInScope } from "../utils/adminScope"
 
 const TABLET_PRODUCTS = [
@@ -338,6 +339,7 @@ export default function TabletPage() {
             )
           })}
         </section>
+        <QASection title="Hỏi & Đáp - Máy tính bảng" subtitle="Hỏi về tablet, bút cảm ứng, pin, màn hình và phụ kiện tương thích" introTitle="Bạn đang xem tablet nào?" introText="Gửi câu hỏi để nhận tư vấn phù hợp cho nhu cầu học tập hoặc giải trí." listTitle="Câu hỏi gần đây" />
       </main>
       <Footer />
     </>

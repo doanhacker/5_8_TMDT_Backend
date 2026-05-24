@@ -12,12 +12,7 @@ const {
     isValidId,
     VALID_STATUSES
 } = require('../helpers/productValidationHelper');
-const {
-    detectScopeFromProduct,
-    getAdminScopeByUser,
-    getPreferredDeviceTypeForScope,
-    checkScopeMutationAccess
-} = require('../helpers/adminScopeHelper');
+const { emitBroadcast } = require('../socket/realtime');
 
 const toStoredImageUrl = (file) => {
     if (!file) return null;
@@ -45,6 +40,14 @@ const parseOptionalJsonObject = (value) => {
     }
 
     return parsedValue;
+};
+
+const normalizeType = (value, fallback = 'OTHER') => String(value || fallback).trim().toUpperCase();
+
+const isDeviceTypeCompatible = (taxonomyType, productType) => {
+    const normalizedTaxonomyType = normalizeType(taxonomyType);
+    const normalizedProductType = normalizeType(productType);
+    return normalizedTaxonomyType === 'OTHER' || normalizedTaxonomyType === normalizedProductType;
 };
 
 
@@ -84,12 +87,6 @@ const productController = {
                 offset: getOffset(page, limit),
                 status
             };
-
-            const actingScope = getAdminScopeByUser(req.user);
-            const forcedDeviceType = getPreferredDeviceTypeForScope(actingScope);
-            if (forcedDeviceType) {
-                options.deviceType = forcedDeviceType;
-            }
 
             const products = await Product.getAll(options);
             const totalCount = await Product.getTotalCount(options);
@@ -279,15 +276,20 @@ const productController = {
             if (!category) {
                 return res.status(404).json({ success: false, message: 'Danh mục không tồn tại.' });
             }
-
             const requestedDeviceType = device_type ? String(device_type).trim().toUpperCase() : 'LAPTOP';
-            const targetScope = detectScopeFromProduct({
-                deviceType: requestedDeviceType,
-                categoryName: category.category_name
-            });
-            const access = checkScopeMutationAccess({ user: req.user, targetScope, actionLabel: 'thao tác' });
-            if (!access.allowed) {
-                return res.status(403).json({ success: false, message: access.message });
+
+            if (!isDeviceTypeCompatible(brand.device_type, requestedDeviceType)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Thương hiệu chỉ áp dụng cho ${normalizeType(brand.device_type)} và không phù hợp với sản phẩm ${requestedDeviceType}.`,
+                });
+            }
+
+            if (!isDeviceTypeCompatible(category.device_type, requestedDeviceType)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Danh mục chỉ áp dụng cho ${normalizeType(category.device_type)} và không phù hợp với sản phẩm ${requestedDeviceType}.`,
+                });
             }
 
             const productData = {
@@ -339,6 +341,14 @@ const productController = {
                     product_level_image_urls: productLevelImageUrls,
                     variants_created: variantsDataForModel.map(v => ({ sku: v.sku, imageUrls: v.imageUrls }))
                 }
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'product',
+                action: 'created',
+                deviceType: requestedDeviceType,
+                id: newProductId,
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi thêm sản phẩm:', error);
@@ -410,11 +420,6 @@ const productController = {
                 return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại!' });
             }
 
-            const existingScope = detectScopeFromProduct({
-                deviceType: existingProduct.device_type,
-                categoryName: existingProduct.category_name
-            });
-
             const {
                 product_name, brand_id, category_id, device_type, description_html, highlight_features,
                 screen_size, weight_kg, os,
@@ -464,10 +469,29 @@ const productController = {
                 return res.status(400).json({ success: false, message: 'ID danh mục không hợp lệ.' });
             }
 
+            const effectiveDeviceType = device_type
+                ? String(device_type).trim().toUpperCase()
+                : normalizeType(existingProduct.device_type, 'LAPTOP');
+
             if (brand_id) {
                 const brand = await Brand.getById(brand_id);
                 if (!brand) {
                     return res.status(404).json({ success: false, message: 'Thương hiệu không tồn tại.' });
+                }
+
+                if (!isDeviceTypeCompatible(brand.device_type, effectiveDeviceType)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Thương hiệu chỉ áp dụng cho ${normalizeType(brand.device_type)} và không phù hợp với sản phẩm ${effectiveDeviceType}.`,
+                    });
+                }
+            } else if (existingProduct.brand_id) {
+                const existingBrand = await Brand.getById(existingProduct.brand_id);
+                if (existingBrand && !isDeviceTypeCompatible(existingBrand.device_type, effectiveDeviceType)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Loại thiết bị ${effectiveDeviceType} không tương thích với thương hiệu hiện tại (${normalizeType(existingBrand.device_type)}). Hãy đổi thương hiệu phù hợp.`,
+                    });
                 }
             }
             let nextCategoryName = existingProduct.category_name;
@@ -476,22 +500,22 @@ const productController = {
                 if (!category) {
                     return res.status(404).json({ success: false, message: 'Danh mục không tồn tại.' });
                 }
+
+                if (!isDeviceTypeCompatible(category.device_type, effectiveDeviceType)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Danh mục chỉ áp dụng cho ${normalizeType(category.device_type)} và không phù hợp với sản phẩm ${effectiveDeviceType}.`,
+                    });
+                }
                 nextCategoryName = category.category_name;
-            }
-
-            const nextDeviceType = device_type ? String(device_type).trim().toUpperCase() : existingProduct.device_type;
-            const nextScope = detectScopeFromProduct({
-                deviceType: nextDeviceType,
-                categoryName: nextCategoryName
-            });
-
-            const access = checkScopeMutationAccess({
-                user: actingUser,
-                targetScope: existingScope || nextScope,
-                actionLabel: 'thao tác'
-            });
-            if (!access.allowed) {
-                return res.status(403).json({ success: false, message: access.message });
+            } else if (existingProduct.category_id) {
+                const existingCategory = await ProductCategory.getById(existingProduct.category_id);
+                if (existingCategory && !isDeviceTypeCompatible(existingCategory.device_type, effectiveDeviceType)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Loại thiết bị ${effectiveDeviceType} không tương thích với danh mục hiện tại (${normalizeType(existingCategory.device_type)}). Hãy đổi danh mục phù hợp.`,
+                    });
+                }
             }
 
             const productData = {
@@ -657,6 +681,14 @@ const productController = {
                 message: 'Cập nhật sản phẩm thành công!',
                 data: { affected_rows: affectedRows }
             });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'product',
+                action: 'updated',
+                deviceType: productData.device_type || existingProduct.device_type,
+                id: Number(productId),
+                at: new Date().toISOString(),
+            });
         } catch (error) {
             console.error('Lỗi khi cập nhật sản phẩm:', error);
             res.status(500).json({ success: false, message: 'Lỗi máy chủ nội bộ' });
@@ -679,15 +711,6 @@ const productController = {
                 return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại để cập nhật trạng thái!' });
             }
 
-            const targetScope = detectScopeFromProduct({
-                deviceType: existingProduct.device_type,
-                categoryName: existingProduct.category_name
-            });
-            const access = checkScopeMutationAccess({ user: req.user, targetScope, actionLabel: 'thao tác' });
-            if (!access.allowed) {
-                return res.status(403).json({ success: false, message: access.message });
-            }
-
             const affectedRows = await Product.updateProductVariantsStatus(id, newStatus);
 
             if (affectedRows === 0) {
@@ -702,6 +725,14 @@ const productController = {
                     new_status_for_variants: newStatus,
                     variants_affected: affectedRows
                 }
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'product',
+                action: 'status-updated',
+                deviceType: existingProduct.device_type,
+                id: Number(id),
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi cập nhật trạng thái sản phẩm:', error);

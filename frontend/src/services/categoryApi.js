@@ -6,9 +6,14 @@ const API_BASE = buildApiUrl('/api/product-categories')
 /**
  * Get all product categories
  */
-export const getAllCategories = async () => {
+export const getAllCategories = async (options = {}) => {
   try {
-    const response = await fetch(API_BASE)
+    const requestUrl = new URL(API_BASE)
+    if (options.deviceType) {
+      requestUrl.searchParams.set('deviceType', String(options.deviceType).trim().toUpperCase())
+    }
+
+    const response = await fetch(requestUrl.toString())
     
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)

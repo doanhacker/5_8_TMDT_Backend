@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { useProducts } from "../context/ProductContext"
@@ -10,6 +10,7 @@ import * as inventoryApi from "../services/inventoryApi"
 import * as adminApi from "../services/adminApi"
 import { buildApiUrl, getImageUrl } from "../config/api"
 import { getAuthToken } from "../lib/authToken"
+import { getRealtimeClient } from "../lib/realtimeClient"
 import {
   FiBarChart2,
   FiBox,
@@ -26,6 +27,9 @@ import {
   FiImage,
   FiGift,
   FiBell,
+  FiMessageSquare,
+  FiTool,
+  FiRefreshCw,
 } from "react-icons/fi"
 import "../styles/Admin.css"
 
@@ -46,6 +50,9 @@ import AdminBranch from "../components/admin/AdminBranch"
 import AdminVouchers from "../components/admin/AdminVouchers"
 import AdminNotifications from "../components/admin/AdminNotifications"
 import AdminCategories from "../components/admin/AdminCategories"
+import AdminCommunityQa from "../components/admin/AdminCommunityQa"
+import AdminServiceUtilities from "../components/admin/AdminServiceUtilities"
+import AdminUsedTradeIn from "../components/admin/AdminUsedTradeIn"
 import {
   ADMIN_SCOPE_RULES,
   getAdminScopeByEmail,
@@ -63,6 +70,9 @@ const moduleItems = [
   { id: "customers", label: "Khách hàng", icon: FiUsers },
   { id: "content", label: "Nội dung & đánh giá", icon: FiFileText },
   { id: "documentation", label: "Quản lý tin tức", icon: FiBookOpen },
+  { id: "communityQa", label: "Hỏi đáp người dùng", icon: FiMessageSquare },
+  { id: "serviceUtilities", label: "Dịch vụ tiện ích", icon: FiTool },
+  { id: "usedTradeIn", label: "Máy cũ, Thu cũ", icon: FiRefreshCw },
   { id: "sliders", label: "Quản lý Banner", icon: FiImage },
   { id: "notifications", label: "Thông báo", icon: FiBell },
   { id: "recommendation", label: "Gợi ý sản phẩm", icon: FiCpu },
@@ -151,6 +161,25 @@ const parseOptionalJsonObject = (value) => {
   return parsed
 }
 
+const extractNumericValue = (value, { integer = false } = {}) => {
+  const text = String(value ?? "").trim()
+  if (!text) return null
+
+  const normalized = text.replace(/\s+/g, "").replace(/,/g, ".")
+  const match = normalized.match(/-?\d+(?:\.\d+)?/)
+  if (!match) return null
+
+  const parsed = Number(match[0])
+  if (!Number.isFinite(parsed)) return null
+
+  return integer ? Math.round(parsed) : parsed
+}
+
+const toSafeNumber = (value, fallback = 0, options = {}) => {
+  const parsed = extractNumericValue(value, options)
+  return parsed === null ? fallback : parsed
+}
+
 const splitFeatures = (value) => {
   if (!value) return []
   return String(value)
@@ -161,7 +190,7 @@ const splitFeatures = (value) => {
 
 const getVariantStatus = (stock, currentStatus) => {
   if (currentStatus) return currentStatus
-  return Number(stock || 0) > 0 ? "IN_STOCK" : "OUT_OF_STOCK"
+  return toSafeNumber(stock, 0, { integer: true }) > 0 ? "IN_STOCK" : "OUT_OF_STOCK"
 }
 
 const getPreferredVariant = (variants = []) => {
@@ -218,6 +247,11 @@ export default function Admin() {
   const [categories, setCategories] = useState([])
   const [loadingBrands, setLoadingBrands] = useState(false)
   const [loadingCategories, setLoadingCategories] = useState(false)
+  const activeDeviceTypeRef = useRef(productForm.deviceType)
+
+  useEffect(() => {
+    activeDeviceTypeRef.current = productForm.deviceType
+  }, [productForm.deviceType])
 
   // Fetch staff users từ API khi vào module "staff"
   useEffect(() => {
@@ -226,10 +260,10 @@ export default function Admin() {
     }
   }, [activeModule])
 
-  // Fetch brands and categories when component mounts
+  // Fetch brands and categories whenever product device type changes.
   useEffect(() => {
-    fetchBrandsAndCategories()
-  }, [])
+    fetchBrandsAndCategories(productForm.deviceType)
+  }, [productForm.deviceType])
 
   useEffect(() => {
     if (!productNotice) return undefined
@@ -253,10 +287,10 @@ export default function Admin() {
     setProductNotice({ type, message })
   }
 
-  const loadCategories = async () => {
+  const loadCategories = async (deviceType = productForm.deviceType) => {
     try {
       setLoadingCategories(true)
-      const categoriesResponse = await categoryApi.getAllCategories()
+      const categoriesResponse = await categoryApi.getAllCategories({ deviceType })
       if (categoriesResponse.success && categoriesResponse.data) {
         const source = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : []
         setCategories(source)
@@ -269,11 +303,11 @@ export default function Admin() {
     }
   }
 
-  const fetchBrandsAndCategories = async () => {
+  const loadBrands = async (deviceType = productForm.deviceType) => {
     // Fetch brands
     try {
       setLoadingBrands(true)
-      const brandsResponse = await brandApi.getAllBrands()
+      const brandsResponse = await brandApi.getAllBrands({ deviceType })
       if (brandsResponse.success && brandsResponse.data) {
         setBrands(brandsResponse.data)
       }
@@ -282,28 +316,58 @@ export default function Admin() {
     } finally {
       setLoadingBrands(false)
     }
-
-    // Fetch categories
-    await loadCategories()
   }
 
+  const fetchBrandsAndCategories = async (deviceType = productForm.deviceType) => {
+    await loadBrands(deviceType)
+    await loadCategories(deviceType)
+  }
+
+  useEffect(() => {
+    const socket = getRealtimeClient()
+    const handleCatalogChanged = (event) => {
+      if (!event || !event.resource) return
+      if (["brand", "category", "product"].includes(event.resource)) {
+        fetchBrandsAndCategories(activeDeviceTypeRef.current || "LAPTOP")
+      }
+    }
+
+    socket.on("catalog:changed", handleCatalogChanged)
+    return () => {
+      socket.off("catalog:changed", handleCatalogChanged)
+    }
+  }, [])
+
   const createCategory = async (payload) => {
-    const response = await categoryApi.createCategory(payload)
-    await loadCategories()
+    const response = await categoryApi.createCategory({
+      ...payload,
+      device_type: payload.device_type || productForm.deviceType,
+    })
+    await loadCategories(payload.device_type || productForm.deviceType)
     return response
   }
 
   const updateCategory = async (categoryId, payload) => {
     const response = await categoryApi.updateCategory(categoryId, payload)
-    await loadCategories()
+    await loadCategories(payload.device_type || productForm.deviceType)
     return response
   }
 
   const deleteCategory = async (categoryId) => {
     const response = await categoryApi.deleteCategory(categoryId)
-    await loadCategories()
+    await loadCategories(productForm.deviceType)
     return response
   }
+
+  useEffect(() => {
+    if (productForm.brand_id && !brands.some((brand) => String(brand.brand_id) === String(productForm.brand_id))) {
+      setProductForm((prev) => ({ ...prev, brand_id: "", brand: "" }))
+    }
+
+    if (productForm.category_id && !categories.some((category) => String(category.category_id) === String(productForm.category_id))) {
+      setProductForm((prev) => ({ ...prev, category_id: "", series: "" }))
+    }
+  }, [brands, categories, productForm.brand_id, productForm.category_id])
 
   const fetchStaffUsers = async () => {
     setLoadingStaff(true)
@@ -510,8 +574,8 @@ export default function Admin() {
         return
       }
 
-      const originalPriceValue = Number(productForm.oldPrice || productForm.price || 0)
-      const discountPriceValue = productForm.price ? Number(productForm.price) : null
+      const originalPriceValue = toSafeNumber(productForm.oldPrice || productForm.price, 0)
+      const discountPriceValue = productForm.price ? toSafeNumber(productForm.price, 0) : null
       const hasValidDiscount = discountPriceValue && discountPriceValue > 0 && originalPriceValue > discountPriceValue
 
       workingVariants = [
@@ -526,7 +590,7 @@ export default function Admin() {
           storage: productForm.storage || '256',
           originalPrice: originalPriceValue,
           discountPrice: hasValidDiscount ? discountPriceValue : null,
-          stock: Number(productForm.stock || 0),
+          stock: toSafeNumber(productForm.stock, 0, { integer: true }),
           status: getVariantStatus(productForm.stock),
           imageFiles: Array.isArray(productForm.imageFiles) ? productForm.imageFiles : [],
           imagePreviews: Array.isArray(productForm.imagePreviews) ? productForm.imagePreviews : [],
@@ -541,15 +605,21 @@ export default function Admin() {
 
     const representativeVariantIndex = workingVariants.findIndex((variant) => variant.status !== "DISCONTINUED")
     const firstVariant = representativeVariantIndex >= 0 ? workingVariants[representativeVariantIndex] : workingVariants[0]
-    const basePrice = firstVariant ? Number(firstVariant.discountPrice || firstVariant.originalPrice || 0) : Number(productForm.price)
-    const baseOldPrice = firstVariant ? Number(firstVariant.originalPrice || firstVariant.discountPrice || 0) : Number(productForm.oldPrice || productForm.price)
+    const basePrice = firstVariant
+      ? toSafeNumber(firstVariant.discountPrice || firstVariant.originalPrice, 0)
+      : toSafeNumber(productForm.price, 0)
+    const baseOldPrice = firstVariant
+      ? toSafeNumber(firstVariant.originalPrice || firstVariant.discountPrice, 0)
+      : toSafeNumber(productForm.oldPrice || productForm.price, 0)
     const baseRam = firstVariant?.ram || productForm.ram
     const baseRamType = firstVariant?.ramType || productForm.ramType
     const baseStorage = firstVariant?.storage || productForm.storage
     const baseCpu = firstVariant?.cpu || productForm.cpu
     const baseCpuBenchmarkScore = firstVariant?.cpuBenchmarkScore || productForm.cpuBenchmarkScore
     const baseGraphics = firstVariant?.gpu || productForm.graphics
-    const baseStock = firstVariant ? Number(firstVariant.stock || 0) : Number(productForm.stock)
+    const baseStock = firstVariant
+      ? toSafeNumber(firstVariant.stock, 0, { integer: true })
+      : toSafeNumber(productForm.stock, 0, { integer: true })
 
     const autoConfig = `${baseRam}${baseRamType ? ` ${baseRamType}` : ""} | ${baseStorage} | ${productForm.screenSize}`
     const autoSpecs = `${baseCpu} | ${baseGraphics} | ${productForm.os}${productForm.weightKg ? ` | ${productForm.weightKg} kg` : ""}`
@@ -579,10 +649,17 @@ export default function Admin() {
         ram: productForm.ram || variant.ram,
         ramType: productForm.ramType || variant.ramType,
         storage: productForm.storage || variant.storage,
-        originalPrice: Number(productForm.oldPrice || variant.originalPrice || 0) || variant.originalPrice,
-        discountPrice: productForm.price ? Number(productForm.price) : variant.discountPrice,
-        stock: productForm.stock !== "" ? Number(productForm.stock) : variant.stock,
-        status: getVariantStatus(productForm.stock !== "" ? Number(productForm.stock) : variant.stock, variant.status),
+        originalPrice: toSafeNumber(productForm.oldPrice || variant.originalPrice, variant.originalPrice || 0),
+        discountPrice: productForm.price ? toSafeNumber(productForm.price, variant.discountPrice || 0) : variant.discountPrice,
+        stock: productForm.stock !== ""
+          ? toSafeNumber(productForm.stock, 0, { integer: true })
+          : toSafeNumber(variant.stock, 0, { integer: true }),
+        status: getVariantStatus(
+          productForm.stock !== ""
+            ? toSafeNumber(productForm.stock, 0, { integer: true })
+            : toSafeNumber(variant.stock, 0, { integer: true }),
+          variant.status
+        ),
         extraSpecsJson: parsedVariantExtraSpecs,
       }
     })
@@ -675,9 +752,9 @@ export default function Admin() {
 
     const newVariant = {
       ...variantForm,
-      originalPrice: Number(variantForm.originalPrice),
-      discountPrice: variantForm.discountPrice ? Number(variantForm.discountPrice) : null,
-      stock: Number(variantForm.stock || 0),
+      originalPrice: toSafeNumber(variantForm.originalPrice, 0),
+      discountPrice: variantForm.discountPrice ? toSafeNumber(variantForm.discountPrice, 0) : null,
+      stock: toSafeNumber(variantForm.stock, 0, { integer: true }),
       status: getVariantStatus(variantForm.stock, variantForm.status),
       extraSpecsJson: (() => {
         try {
@@ -1103,6 +1180,17 @@ export default function Admin() {
         onCreateCategory={createCategory}
         onUpdateCategory={updateCategory}
         onDeleteCategory={deleteCategory}
+        deviceType={productForm.deviceType}
+        onDeviceTypeChange={(nextType) => {
+          setProductForm((prev) => ({
+            ...prev,
+            deviceType: nextType,
+            brand_id: "",
+            brand: "",
+            category_id: "",
+            series: "",
+          }))
+        }}
       />
     )
     if (activeModule === "branch") return <AdminBranch />
@@ -1140,6 +1228,9 @@ export default function Admin() {
       />
     )
     if (activeModule === "documentation") return <AdminNews />
+    if (activeModule === "communityQa") return <AdminCommunityQa />
+    if (activeModule === "serviceUtilities") return <AdminServiceUtilities />
+    if (activeModule === "usedTradeIn") return <AdminUsedTradeIn />
     if (activeModule === "sliders") return <AdminSliderAPI />
     if (activeModule === "notifications") return <AdminNotifications />
     if (activeModule === "recommendation") return (

@@ -28,9 +28,9 @@ export default function Laptop() {
         <CategoryBar />
         <BannerSlider />
         <LaptopFilterSection />
-        <FeaturedProducts />
+        <FeaturedProducts deviceType="LAPTOP" />
         <FilterBar onFilterChange={handleFilterChange} />
-        <ProductListSection filters={filters} sortBy={sortBy} selectedCategory={selectedCategory} />
+        <ProductListSection filters={filters} sortBy={sortBy} selectedCategory={selectedCategory} deviceType="LAPTOP" />
         <HomeArticleSection />
         <QASection />
       </div>

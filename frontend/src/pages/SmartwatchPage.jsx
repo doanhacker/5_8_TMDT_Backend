@@ -5,7 +5,6 @@ import {
   FiChevronRight,
   FiDollarSign,
   FiFilter,
-  FiSearch,
   FiShoppingCart,
   FiStar,
   FiTag,
@@ -15,6 +14,7 @@ import { useCart } from "../context/CartContext"
 import { useProducts } from "../context/ProductContext"
 import FilterBar from "../components/FilterBar"
 import LaptopFilterSection from "../components/LaptopFilterSection"
+import QASection from "../components/QASection"
 import Footer from "../components/Footer"
 import "../styles/NewsPhone.css"
 import { isProductInScope } from "../utils/adminScope"
@@ -164,25 +164,119 @@ const SMARTWATCH_PRICE_RANGES = [
 
 const normalizeText = (value) => String(value || "").toLowerCase()
 
-const mapApiProductToWatchCard = (product) => ({
-  id: Number(product?.id),
-  name: product?.name || "Smartwatch",
-  brand: product?.brand || "Unknown",
-  category: product?.series || "Smartwatch",
-  price: Number(product?.price || 0),
-  oldPrice: Number(product?.oldPrice || product?.price || 0),
-  rating: 4.7,
-  sold: String(product?.sold || "0"),
-  specs: [product?.cpu || "Chipset", product?.screenSize || "Màn hình", product?.batteryCapacityMah ? `${product.batteryCapacityMah} mAh` : "Pin"],
-  feature: (Array.isArray(product?.features) && product.features[0]) || "Sản phẩm chính hãng",
-  image: product?.image || PRODUCT_FALLBACK_IMAGE,
-})
+const normalizeSpecValue = (value) => {
+  const text = String(value ?? "").trim()
+  if (!text) return ""
+  return text.toLowerCase() === "đang cập nhật" ? "" : text
+}
+
+const firstNonEmptySpec = (...values) => {
+  for (const value of values) {
+    const normalized = normalizeSpecValue(value)
+    if (normalized) return normalized
+  }
+  return ""
+}
+
+const toPositiveNumber = (...values) => {
+  for (const value of values) {
+    const number = Number(value)
+    if (Number.isFinite(number) && number > 0) return number
+  }
+  return 0
+}
+
+const normalizePriceToVnd = (value) => {
+  const number = Number(value)
+  if (!Number.isFinite(number) || number <= 0) return 0
+
+  // Some admin inputs are stored as "triệu" values (e.g. 8.49), convert them to VND.
+  if (number < 1000) {
+    return Math.round(number * 1000000)
+  }
+
+  return Math.round(number)
+}
+
+const normalizeForMatch = (value) =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase()
+
+const findWatchTemplate = (product) => {
+  const productName = normalizeForMatch(product?.name)
+  if (!productName) return null
+
+  return SMARTWATCH_PRODUCTS.find((item) => {
+    const templateName = normalizeForMatch(item.name)
+    return productName.includes(templateName) || templateName.includes(productName)
+  }) || null
+}
+
+const mapApiProductToWatchCard = (product) => {
+  const template = findWatchTemplate(product)
+
+  const rawPrice = toPositiveNumber(
+    product?.price,
+    product?.discountPrice,
+    product?.minPrice,
+    product?.sale_price,
+    template?.price,
+  )
+
+  const rawOldPrice = toPositiveNumber(
+    product?.oldPrice,
+    product?.originalPrice,
+    product?.maxPrice,
+    product?.original_price,
+    template?.oldPrice,
+    rawPrice,
+  )
+
+  const price = normalizePriceToVnd(rawPrice)
+  const oldPrice = normalizePriceToVnd(rawOldPrice || rawPrice)
+
+  const chipset = firstNonEmptySpec(
+    product?.cpu,
+    product?.chipset,
+    product?.deviceSpecificSpecs?.chipset,
+    template?.specs?.[0],
+  )
+
+  const display = firstNonEmptySpec(
+    product?.screenSize,
+    product?.display,
+    template?.specs?.find((item) => /inch|retina|amoled|oled/i.test(String(item))),
+  )
+
+  const battery = product?.batteryCapacityMah
+    ? `${product.batteryCapacityMah} mAh`
+    : firstNonEmptySpec(
+      product?.battery,
+      template?.specs?.find((item) => /mah|pin/i.test(String(item))),
+    )
+
+  return {
+    id: Number(product?.id),
+    name: product?.name || template?.name || "Smartwatch",
+    brand: product?.brand || template?.brand || "Unknown",
+    category: product?.series || template?.category || "Smartwatch",
+    price,
+    oldPrice,
+    rating: Number(product?.rating) > 0 ? Number(product.rating) : Number(template?.rating || 4.7),
+    sold: String(product?.sold || template?.sold || "0"),
+    specs: [chipset || "Chipset mạnh", display || "Màn hình đẹp", battery || "Pin bền bỉ"],
+    feature: firstNonEmptySpec((Array.isArray(product?.features) && product.features[0]) || "", product?.feature, template?.feature) || "Sản phẩm chính hãng",
+    image: product?.image || template?.image || PRODUCT_FALLBACK_IMAGE,
+  }
+}
 
 export default function SmartwatchPage() {
   const navigate = useNavigate()
   const { addToCart } = useCart()
   const { products, loading } = useProducts()
-  const [query, setQuery] = useState("")
   const [filters, setFilters] = useState(null)
   const [sortBy, setSortBy] = useState("popular")
 
@@ -197,19 +291,9 @@ export default function SmartwatchPage() {
   }
 
   const filteredProducts = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
     const activeFilters = filters || {}
 
     return smartwatchProducts.filter((product) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        [product.name, product.brand, product.category, product.feature, product.specs.join(" ")]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery)
-
-      if (!matchesQuery) return false
-
       if (activeFilters.priceRange) {
         const maxPrice = activeFilters.priceRange.max === Infinity ? Number.MAX_SAFE_INTEGER : activeFilters.priceRange.max
         if (product.price < activeFilters.priceRange.min || product.price > maxPrice) return false
@@ -234,7 +318,7 @@ export default function SmartwatchPage() {
       }
       return parseInt(b.sold, 10) - parseInt(a.sold, 10)
     })
-  }, [query, filters, sortBy, smartwatchProducts])
+  }, [filters, sortBy, smartwatchProducts])
 
   const handleAddToCart = (product) => {
     addToCart({
@@ -246,7 +330,11 @@ export default function SmartwatchPage() {
     })
   }
 
-  const calculateDiscount = (oldPrice, price) => Math.round(((oldPrice - price) / oldPrice) * 100)
+  const calculateDiscount = (oldPrice, price) => {
+    if (!Number.isFinite(oldPrice) || oldPrice <= 0 || !Number.isFinite(price) || price <= 0) return 0
+    if (price >= oldPrice) return 0
+    return Math.round(((oldPrice - price) / oldPrice) * 100)
+  }
 
   const handleProductClick = (product) => {
     navigate(`/product/${product.id}`, { state: { mockProduct: product } })
@@ -290,25 +378,6 @@ export default function SmartwatchPage() {
         <div style={{ maxWidth: 1400, margin: "0 auto", paddingLeft: 16, paddingRight: 16 }}>
           {/* Search & Filter */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-              <div style={{ flex: 1, position: "relative" }}>
-                <input
-                  type="text"
-                  placeholder="Tìm smartwatch..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "12px 40px 12px 16px",
-                    borderRadius: 10,
-                    border: "1px solid #e2e8f0",
-                    fontSize: 14,
-                    outline: "none",
-                  }}
-                />
-                <FiSearch style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-              </div>
-            </div>
             <FilterBar
               filterConfig={SMARTWATCH_FILTER_CONFIG}
               priceRanges={SMARTWATCH_PRICE_RANGES}
@@ -396,12 +465,13 @@ export default function SmartwatchPage() {
           {filteredProducts.length === 0 && (
             <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
               <p style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Không tìm thấy sản phẩm</p>
-              <p style={{ fontSize: 14 }}>Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+              <p style={{ fontSize: 14 }}>Thử thay đổi bộ lọc</p>
             </div>
           )}
         </div>
       </div>
 
+        <QASection title="Hỏi & Đáp - Đồng hồ thông minh" subtitle="Hỏi về smartwatch, theo dõi sức khỏe, pin và tính tương thích" introTitle="Bạn cần tư vấn smartwatch?" introText="Gửi câu hỏi để nhận tư vấn theo nhu cầu thể thao hoặc sức khỏe." listTitle="Câu hỏi gần đây" />
       <Footer />
     </div>
   )

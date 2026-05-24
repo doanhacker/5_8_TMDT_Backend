@@ -19,6 +19,7 @@ import {
 import { useCart } from "../context/CartContext"
 import { useProducts } from "../context/ProductContext"
 import LaptopFilterSection from "../components/LaptopFilterSection"
+import QASection from "../components/QASection"
 import FilterBar from "../components/FilterBar"
 import Footer from "../components/Footer"
 import { BLOG_API_BASE } from "../config/api"
@@ -245,15 +246,42 @@ const parseSoldCount = (value) => {
 const normalizeText = (value) => String(value || "").toLowerCase()
 const parseBatteryMah = (value) => Number(String(value || "").replace(/[^\d]/g, "")) || 0
 const resolveOs = (brandName) => (brandName === "Apple" ? "iOS" : "Android")
+const normalizeSpecValue = (value) => {
+  const text = String(value ?? "").trim()
+  if (!text) return ""
+  return text.toLowerCase() === "đang cập nhật" ? "" : text
+}
+
+const firstNonEmptySpec = (...values) => {
+  for (const value of values) {
+    const normalized = normalizeSpecValue(value)
+    if (normalized) return normalized
+  }
+  return ""
+}
+
+const toCameraLabel = (value) => {
+  const normalized = normalizeSpecValue(value)
+  if (!normalized) return ""
+  return /mp/i.test(normalized) ? normalized : `${normalized}MP`
+}
+
 const isPhoneProduct = (product) => {
   const normalizedCategory = String(product?.series || "").toLowerCase()
   return String(product?.deviceType || "").toUpperCase() === "PHONE" || normalizedCategory.includes("điện thoại") || normalizedCategory.includes("dien thoai") || normalizedCategory.includes("phone")
 }
 
 const mapApiProductToPhoneCard = (product, index) => {
-  const chipset = product.cpu || "Đang cập nhật"
-  const batteryValue = product.batteryCapacityMah ? `${product.batteryCapacityMah} mAh` : "Đang cập nhật"
-  const display = product.screenSize || "Đang cập nhật"
+  const chipset = firstNonEmptySpec(product.cpu, product.deviceSpecificSpecs?.chipset, product.chipset)
+  const batteryValue = product.batteryCapacityMah
+    ? `${product.batteryCapacityMah} mAh`
+    : firstNonEmptySpec(product.battery)
+  const display = firstNonEmptySpec(product.screenSize, product.display)
+  const cameraValue = toCameraLabel(firstNonEmptySpec(product.deviceSpecificSpecs?.rear_camera_mp, product.camera))
+  const osValue = firstNonEmptySpec(product.os)
+  const refreshRateValue = product.refreshRateHz
+    ? `${product.refreshRateHz}Hz`
+    : firstNonEmptySpec(product.refreshRate)
   const accentPalette = [
     "from-slate-900 via-blue-900 to-cyan-700",
     "from-zinc-900 via-stone-700 to-neutral-500",
@@ -272,12 +300,14 @@ const mapApiProductToPhoneCard = (product, index) => {
     oldPrice: Number(product.oldPrice || product.price || 0),
     rating: 4.7,
     sold: String(product.sold || "0"),
-    storage: product.storage || "Đang cập nhật",
-    ram: product.ram || "Đang cập nhật",
+    storage: firstNonEmptySpec(product.storage),
+    ram: firstNonEmptySpec(product.ram),
     chipset,
     battery: batteryValue,
-    camera: product.deviceSpecificSpecs?.rear_camera_mp ? `${product.deviceSpecificSpecs.rear_camera_mp}MP` : "Đang cập nhật",
+    camera: cameraValue,
     display,
+    os: osValue,
+    refreshRate: refreshRateValue,
     feature: (Array.isArray(product.features) && product.features[0]) || "Sản phẩm chính hãng",
     tag: product.newArrival ? "Mới về" : "Đang bán",
     accent: accentPalette[index % accentPalette.length],
@@ -453,10 +483,8 @@ export default function PhonePage() {
         <section style={styles.hero}>
           <div style={styles.heroCopy}>
             <span style={styles.kicker}>Điện thoại chính hãng</span>
-            <h1 style={styles.title}>Khám phá showroom điện thoại với dữ liệu thật cập nhật từ hệ thống.</h1>
-            <p style={styles.subtitle}>
-              Danh sách sản phẩm được tải trực tiếp từ API, có thể lọc và tìm kiếm theo nhu cầu.
-            </p>
+            <h1 style={styles.title}>Trải nghiệm showroom điện thoại với dữ liệu sản phẩm thực tế, cập nhật liên tục.</h1>
+            
 
             <div style={styles.searchRow}>
               <div style={styles.searchBox}>
@@ -525,11 +553,7 @@ export default function PhonePage() {
         <section style={styles.sectionHeader}>
           <div>
             <h2 style={styles.sectionTitle}>Điện thoại nổi bật</h2>
-            <p style={styles.sectionSubtitle}>
-              {loading ? "Đang tải dữ liệu từ hệ thống..." : `${filteredProducts.length} sản phẩm đang hiển thị theo bộ lọc hiện tại.`}
-            </p>
           </div>
-          <span style={styles.sectionPill}>Live API</span>
         </section>
 
         <section style={styles.grid}>
@@ -543,6 +567,24 @@ export default function PhonePage() {
             const discount = product.oldPrice > 0 ? Math.max(0, Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)) : 0
             const productImage = product.image || PRODUCT_FALLBACK_IMAGE
             const mockProductPayload = { ...product, image: productImage }
+            const specItems = [
+              { key: "chipset", icon: FiCpu, value: product.chipset },
+              { key: "camera", icon: FiCamera, value: product.camera },
+              { key: "battery", icon: FiBatteryCharging, value: product.battery },
+              { key: "display", icon: FiShield, value: product.display },
+              { key: "os", icon: FiSmartphone, value: product.os },
+              { key: "refresh", icon: FiFilter, value: product.refreshRate },
+            ].filter((item) => normalizeSpecValue(item.value))
+            const metadataItems = [product.ram, product.storage, `Đã bán ${product.sold}`].filter((item) => normalizeSpecValue(item))
+            const cartSpecs = [product.chipset, product.display, product.camera]
+              .map((item) => normalizeSpecValue(item))
+              .filter(Boolean)
+              .slice(0, 2)
+              .join(" | ")
+            const cartConfig = [product.ram, product.storage]
+              .map((item) => normalizeSpecValue(item))
+              .filter(Boolean)
+              .join(" • ")
 
             const openDetail = () => {
               navigate(`/product/${product.id}`, { state: { mockProduct: mockProductPayload } })
@@ -591,25 +633,23 @@ export default function PhonePage() {
                   <h3 style={styles.cardTitle}>{product.name}</h3>
                   <p style={styles.cardFeature}>{product.feature}</p>
 
-                  <div style={styles.specGrid}>
-                    <div style={styles.specItem}>
-                      <FiCpu size={14} /> {product.chipset}
+                  {specItems.length > 0 ? (
+                    <div style={styles.specGrid}>
+                      {specItems.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <div key={item.key} style={styles.specItem}>
+                            <Icon size={14} /> {item.value}
+                          </div>
+                        )
+                      })}
                     </div>
-                    <div style={styles.specItem}>
-                      <FiCamera size={14} /> {product.camera}
-                    </div>
-                    <div style={styles.specItem}>
-                      <FiBatteryCharging size={14} /> {product.battery}
-                    </div>
-                    <div style={styles.specItem}>
-                      <FiShield size={14} /> {product.display}
-                    </div>
-                  </div>
+                  ) : null}
 
                   <div style={styles.metaRow}>
-                    <span>{product.ram}</span>
-                    <span>{product.storage}</span>
-                    <span>Đã bán {product.sold}</span>
+                    {metadataItems.map((item) => (
+                      <span key={`${product.id}-${item}`}>{item}</span>
+                    ))}
                   </div>
 
                   <div style={styles.priceRow}>
@@ -631,8 +671,8 @@ export default function PhonePage() {
                             image: productImage,
                             price: product.price,
                             oldPrice: product.oldPrice,
-                            specs: `${product.chipset} | ${product.display}`,
-                            config: `${product.ram} • ${product.storage}`,
+                            specs: cartSpecs || "Thông số đang được bổ sung",
+                            config: cartConfig || "Phiên bản tiêu chuẩn",
                           },
                           1
                         )
@@ -694,6 +734,7 @@ export default function PhonePage() {
             ))}
           </div>
         </section>
+        <QASection title="Hỏi & Đáp - Điện thoại" subtitle="Gửi thắc mắc về smartphone, cấu hình, pin, camera và nhận phản hồi ngay" introTitle="Bạn muốn hỏi về điện thoại nào?" introText="Đặt câu hỏi, đội ngũ và cộng đồng sẽ hỗ trợ bạn sớm nhất." listTitle="Câu hỏi gần đây" />
       </main>
       <Footer />
     </>

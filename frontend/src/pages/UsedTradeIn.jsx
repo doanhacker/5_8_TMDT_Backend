@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   FiBatteryCharging,
@@ -13,6 +13,7 @@ import {
 import Footer from "../components/Footer"
 import { useCart } from "../context/CartContext"
 import { useProducts } from "../context/ProductContext"
+import { createTradeInRequest, getUsedTradeItems } from "../services/usedTradeInApi"
 
 const USED_KEYWORDS = ["cũ", "cu", "like new", "refurbished", "outlet", "đổi trả", "doi tra", "thu cũ", "thu cu"]
 
@@ -71,11 +72,57 @@ export default function UsedTradeInPage() {
 
   const [query, setQuery] = useState("")
   const [grade, setGrade] = useState("Tất cả")
+  const [apiUsedItems, setApiUsedItems] = useState([])
+  const [apiLoading, setApiLoading] = useState(true)
+  const [apiError, setApiError] = useState("")
+  const [tradeInForm, setTradeInForm] = useState({
+    customerName: "",
+    phone: "",
+    email: "",
+    deviceName: "",
+    deviceCondition: "",
+    expectedPrice: "",
+    note: "",
+  })
+  const [tradeInSubmitting, setTradeInSubmitting] = useState(false)
+  const [tradeInMessage, setTradeInMessage] = useState("")
+
+  useEffect(() => {
+    let active = true
+
+    const loadUsedItems = async () => {
+      try {
+        setApiLoading(true)
+        setApiError("")
+        const data = await getUsedTradeItems({ limit: 120 })
+        if (!active) return
+        setApiUsedItems(Array.isArray(data) ? data : [])
+      } catch (error) {
+        if (!active) return
+        setApiUsedItems([])
+        setApiError(error?.message || "Không thể tải danh sách máy cũ")
+      } finally {
+        if (active) {
+          setApiLoading(false)
+        }
+      }
+    }
+
+    loadUsedItems()
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const usedProducts = useMemo(() => {
+    if (Array.isArray(apiUsedItems) && apiUsedItems.length > 0) {
+      return apiUsedItems
+    }
+
     const input = Array.isArray(apiProducts) ? apiProducts : []
     return input.filter(isUsedProduct).map(mapApiProductToUsedCard)
-  }, [apiProducts])
+  }, [apiProducts, apiUsedItems])
 
   const gradeFilters = useMemo(() => ["Tất cả", ...new Set(usedProducts.map((item) => item.grade))], [usedProducts])
 
@@ -94,6 +141,43 @@ export default function UsedTradeInPage() {
       .sort((a, b) => parseSold(b.sold) - parseSold(a.sold))
   }, [grade, query, usedProducts])
 
+  const handleSubmitTradeIn = async () => {
+    if (!tradeInForm.customerName.trim() || !tradeInForm.phone.trim() || !tradeInForm.deviceName.trim()) {
+      setTradeInMessage("Vui lòng nhập Họ tên, SĐT và tên thiết bị cần thu cũ.")
+      return
+    }
+
+    try {
+      setTradeInSubmitting(true)
+      setTradeInMessage("")
+
+      await createTradeInRequest({
+        customerName: tradeInForm.customerName.trim(),
+        phone: tradeInForm.phone.trim(),
+        email: tradeInForm.email.trim(),
+        deviceName: tradeInForm.deviceName.trim(),
+        deviceCondition: tradeInForm.deviceCondition.trim(),
+        expectedPrice: tradeInForm.expectedPrice ? Number(tradeInForm.expectedPrice) : null,
+        note: tradeInForm.note.trim(),
+      })
+
+      setTradeInMessage("Đăng ký thu cũ thành công. Đội ngũ sẽ liên hệ bạn sớm nhất.")
+      setTradeInForm({
+        customerName: "",
+        phone: "",
+        email: "",
+        deviceName: "",
+        deviceCondition: "",
+        expectedPrice: "",
+        note: "",
+      })
+    } catch (error) {
+      setTradeInMessage(error?.message || "Không thể gửi yêu cầu thu cũ")
+    } finally {
+      setTradeInSubmitting(false)
+    }
+  }
+
   return (
     <>
       <main style={styles.page}>
@@ -102,7 +186,7 @@ export default function UsedTradeInPage() {
             <span style={styles.heroKicker}>
               <FiRefreshCw size={14} /> Máy cũ, Thu cũ
             </span>
-            <h1 style={styles.heroTitle}>Trang máy cũ và chương trình thu cũ đã lấy dữ liệu thật từ API.</h1>
+            <h1 style={styles.heroTitle}>Máy cũ và chương trình thu cũ của TechMart.</h1>
             <p style={styles.heroSubtitle}>
               {loading ? "Đang đồng bộ dữ liệu từ API..." : "Thiết bị được kiểm định kỹ thuật, có bảo hành và hỗ trợ trả góp linh hoạt."}
             </p>
@@ -144,11 +228,43 @@ export default function UsedTradeInPage() {
             <button type="button" style={styles.tradeBtn}>
               Đăng ký thu cũ ngay <FiChevronRight />
             </button>
+
+            <div style={styles.tradeForm}>
+              <input
+                placeholder="Họ tên *"
+                value={tradeInForm.customerName}
+                onChange={(event) => setTradeInForm((prev) => ({ ...prev, customerName: event.target.value }))}
+                style={styles.tradeInput}
+              />
+              <input
+                placeholder="Số điện thoại *"
+                value={tradeInForm.phone}
+                onChange={(event) => setTradeInForm((prev) => ({ ...prev, phone: event.target.value }))}
+                style={styles.tradeInput}
+              />
+              <input
+                placeholder="Thiết bị cần thu cũ *"
+                value={tradeInForm.deviceName}
+                onChange={(event) => setTradeInForm((prev) => ({ ...prev, deviceName: event.target.value }))}
+                style={styles.tradeInput}
+              />
+              <input
+                placeholder="Giá mong muốn (VND)"
+                value={tradeInForm.expectedPrice}
+                onChange={(event) => setTradeInForm((prev) => ({ ...prev, expectedPrice: event.target.value }))}
+                style={styles.tradeInput}
+              />
+              <button type="button" style={styles.tradeBtnPrimary} onClick={handleSubmitTradeIn} disabled={tradeInSubmitting}>
+                {tradeInSubmitting ? "Đang gửi..." : "Gửi yêu cầu thu cũ"}
+              </button>
+              {tradeInMessage ? <p style={styles.tradeMessage}>{tradeInMessage}</p> : null}
+            </div>
           </div>
         </section>
 
         <section style={styles.grid}>
-          {!loading && products.length === 0 ? <p>Chưa có dữ liệu máy cũ/thu cũ phù hợp trong API hiện tại.</p> : null}
+          {apiError ? <p>{apiError}</p> : null}
+          {!loading && !apiLoading && products.length === 0 ? <p>Chưa có dữ liệu máy cũ/thu cũ phù hợp trong API hiện tại.</p> : null}
           {products.map((product) => {
             const discount = product.oldPrice > product.price ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100) : 0
             const openDetail = () => {
@@ -233,7 +349,7 @@ export default function UsedTradeInPage() {
                         openDetail()
                       }}
                     >
-                      Xem chi ti?t <FiChevronRight />
+                      Xem chi tiết <FiChevronRight />
                     </button>
                   </div>
                 </div>
@@ -357,12 +473,44 @@ const styles = {
     background: "#fff",
     cursor: "pointer",
   },
+  tradeForm: {
+    display: "grid",
+    gap: 8,
+  },
+  tradeInput: {
+    width: "100%",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.32)",
+    background: "rgba(255,255,255,0.12)",
+    color: "#fff",
+    padding: "10px 12px",
+    outline: "none",
+    fontSize: 13,
+  },
+  tradeBtnPrimary: {
+    border: 0,
+    borderRadius: 10,
+    padding: "10px 12px",
+    fontWeight: 700,
+    color: "#111827",
+    background: "#fbbf24",
+    cursor: "pointer",
+  },
+  tradeMessage: {
+    margin: 0,
+    fontSize: 12,
+    color: "#fef3c7",
+  },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
     gap: 14,
+    alignItems: "stretch",
   },
   card: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
     borderRadius: 16,
     border: "1px solid #e2e8f0",
     background: "#fff",
@@ -374,8 +522,8 @@ const styles = {
     height: 164,
     objectFit: "cover",
   },
-  cardBody: { padding: 12, display: "grid", gap: 10 },
-  badgeRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  cardBody: { padding: 12, display: "grid", gap: 10, flex: 1 },
+  badgeRow: { display: "flex", gap: 8, flexWrap: "wrap", minHeight: 24 },
   categoryBadge: {
     fontSize: 11,
     fontWeight: 700,
@@ -392,12 +540,32 @@ const styles = {
     background: "#fff7ed",
     color: "#c2410c",
   },
-  cardTitle: { margin: 0, fontSize: 17 },
-  cardNote: { margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.45 },
+  cardTitle: {
+    margin: 0,
+    fontSize: 17,
+    lineHeight: 1.3,
+    minHeight: 44,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
+  cardNote: {
+    margin: 0,
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 1.45,
+    minHeight: 56,
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  },
   specGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
     gap: 6,
+    minHeight: 72,
   },
   specItem: {
     fontSize: 12,
@@ -409,12 +577,12 @@ const styles = {
     borderRadius: 10,
     background: "#f8fafc",
   },
-  metaRow: { display: "flex", justifyContent: "space-between", color: "#475569", fontSize: 12 },
+  metaRow: { display: "flex", justifyContent: "space-between", alignItems: "center", color: "#475569", fontSize: 12, minHeight: 18 },
   discount: { color: "#dc2626", fontWeight: 700 },
-  priceRow: { display: "flex", alignItems: "center", gap: 10 },
+  priceRow: { display: "flex", alignItems: "center", gap: 10, minHeight: 30 },
   price: { fontSize: 17, color: "#0f172a" },
   oldPrice: { color: "#94a3b8", textDecoration: "line-through", fontSize: 13 },
-  actions: { display: "grid", gap: 8 },
+  actions: { display: "grid", gap: 8, marginTop: "auto" },
   cartBtn: {
     border: 0,
     borderRadius: 10,

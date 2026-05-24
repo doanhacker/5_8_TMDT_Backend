@@ -1,8 +1,10 @@
 import "../styles/QASection.css"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FiChevronDown } from "react-icons/fi"
+import { getRealtimeClient } from "../lib/realtimeClient"
+import { getCommunityQuestions, submitCommunityQuestion } from "../services/communityQaApi"
 
-const qaItems = [
+const fallbackQaItems = [
   {
     id: 1,
     user: "Nguyễn Trọng Vinh",
@@ -47,14 +49,121 @@ const qaItems = [
   },
 ]
 
-export default function QASection() {
-  const [question, setQuestion] = useState("")
-  const [expandedId, setExpandedId] = useState(1)
+const normalizeQaItem = (item) => ({
+  id: item?.id || item?.qa_id,
+  user: String(item?.user || item?.user_name || "Khách hàng"),
+  question: String(item?.question || item?.question_content || ""),
+  answer: String(item?.answer || item?.answer_content || ""),
+  time: String(item?.time || ""),
+  createdAt: item?.createdAt || item?.created_at || null,
+})
 
-  const handleSubmit = () => {
-    if (!question.trim()) return alert("Vui lòng nhập câu hỏi")
-    alert("Câu hỏi đã được gửi!")
-    setQuestion("")
+const formatRelativeTime = (value, fallback = "Vừa xong") => {
+  if (!value) return fallback
+
+  const timestamp = new Date(value).getTime()
+  if (Number.isNaN(timestamp)) return fallback
+
+  const diffMs = Date.now() - timestamp
+  if (diffMs < 0) return fallback
+
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+
+  if (diffMs < minute) return "Vừa xong"
+  if (diffMs < hour) return `${Math.floor(diffMs / minute)} phút trước`
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} giờ trước`
+  return `${Math.floor(diffMs / day)} ngày trước`
+}
+
+export default function QASection({ title = "Hỏi & Đáp - Giải đáp thắc mắc của bạn", subtitle = "Đặt câu hỏi cho chúng tôi và nhận câu trả lời từ cộng đồng", introTitle = "Hãy đặt câu hỏi cho chúng tôi", introText = "Chúng tôi sẽ phản hồi trong vòng 1 giờ. Nếu gửi sau 22h, chúng tôi sẽ trả lời vào sáng hôm sau.", listTitle = "Câu hỏi gần đây" } = {}) {
+  const [question, setQuestion] = useState("")
+  const [items, setItems] = useState(fallbackQaItems)
+  const [expandedId, setExpandedId] = useState(fallbackQaItems[0]?.id || null)
+  const [submitState, setSubmitState] = useState({ loading: false, message: "", error: false })
+
+  useEffect(() => {
+    let active = true
+
+    const fetchQuestions = async () => {
+      try {
+        const data = await getCommunityQuestions(30)
+        if (!active) return
+
+        if (Array.isArray(data) && data.length > 0) {
+          const normalized = data.map(normalizeQaItem).filter((item) => item.id && item.question)
+          setItems(normalized)
+          setExpandedId(normalized[0]?.id || null)
+        }
+      } catch {
+        // Keep fallback data if API is unavailable.
+      }
+    }
+
+    fetchQuestions()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const socket = getRealtimeClient()
+
+    const handleQaChanged = (payload) => {
+      if (!payload?.item) return
+
+      const incoming = normalizeQaItem(payload.item)
+      if (!incoming.id || !incoming.question) return
+
+      setItems((prev) => {
+        const existingIndex = prev.findIndex((item) => String(item.id) === String(incoming.id))
+        if (existingIndex >= 0) {
+          const next = [...prev]
+          next[existingIndex] = {
+            ...next[existingIndex],
+            ...incoming,
+            answer: incoming.answer,
+          }
+          return next
+        }
+        return [incoming, ...prev]
+      })
+      setExpandedId((current) => current || incoming.id)
+    }
+
+    socket.on("qa:changed", handleQaChanged)
+
+    return () => {
+      socket.off("qa:changed", handleQaChanged)
+    }
+  }, [])
+
+  const handleSubmit = async () => {
+    const content = question.trim()
+    if (!content) {
+      setSubmitState({ loading: false, message: "Vui lòng nhập câu hỏi", error: true })
+      return
+    }
+
+    try {
+      setSubmitState({ loading: true, message: "", error: false })
+      const created = await submitCommunityQuestion({ question: content })
+      const normalized = normalizeQaItem(created)
+
+      setItems((prev) => {
+        if (!normalized.id || prev.some((item) => String(item.id) === String(normalized.id))) {
+          return prev
+        }
+        return [normalized, ...prev]
+      })
+      setExpandedId(normalized.id || null)
+      setQuestion("")
+      setSubmitState({ loading: false, message: "Đã gửi câu hỏi thành công", error: false })
+    } catch (error) {
+      setSubmitState({ loading: false, message: error.message || "Không thể gửi câu hỏi", error: true })
+    }
   }
 
   const toggleExpand = (id) => {
@@ -64,8 +173,8 @@ export default function QASection() {
   return (
     <div className="qa-wrapper">
       <div className="qa-header">
-        <h2>Hỏi & Đáp - Giải đáp thắc mắc của bạn</h2>
-        <p className="qa-subtitle">Đặt câu hỏi cho chúng tôi và nhận câu trả lời từ cộng đồng</p>
+        <h2>{title}</h2>
+        <p className="qa-subtitle">{subtitle}</p>
       </div>
 
       {/* Form đặt câu hỏi */}
@@ -78,11 +187,8 @@ export default function QASection() {
         </div>
 
         <div className="qa-form-right">
-          <h3>Hãy đặt câu hỏi cho chúng tôi</h3>
-          <p>
-            Chúng tôi sẽ phản hồi trong vòng <strong>1 giờ</strong>. Nếu gửi sau 22h,
-            chúng tôi sẽ trả lời vào sáng hôm sau.
-          </p>
+          <h3>{introTitle}</h3>
+          <p>{introText}</p>
 
           <div className="qa-input-group">
             <input
@@ -90,20 +196,23 @@ export default function QASection() {
               placeholder="Nhập câu hỏi của bạn..."
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSubmit()}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
-            <button className="qa-submit-btn" onClick={handleSubmit}>
-              Gửi câu hỏi
+            <button className="qa-submit-btn" onClick={handleSubmit} disabled={submitState.loading}>
+              {submitState.loading ? "Đang gửi..." : "Gửi câu hỏi"}
             </button>
           </div>
+          {submitState.message ? (
+            <p className={`qa-form-message ${submitState.error ? "error" : "success"}`}>{submitState.message}</p>
+          ) : null}
         </div>
       </div>
 
       {/* Danh sách câu hỏi */}
       <div className="qa-list">
-        <h3 className="qa-list-title">Câu hỏi thường gặp</h3>
+        <h3 className="qa-list-title">{listTitle}</h3>
         <div className="qa-items">
-          {qaItems.map((item) => (
+          {items.map((item) => (
             <div
               key={item.id}
               className={`qa-item ${expandedId === item.id ? "expanded" : ""}`}
@@ -113,7 +222,7 @@ export default function QASection() {
                 onClick={() => toggleExpand(item.id)}
               >
                 <div className="qa-item-title">
-                  <span className="qa-user-info">{item.user} • {item.time}</span>
+                  <span className="qa-user-info">{item.user} • {formatRelativeTime(item.createdAt, item.time || "Vừa xong")}</span>
                   <p className="qa-question">{item.question}</p>
                 </div>
                 <FiChevronDown
@@ -124,10 +233,17 @@ export default function QASection() {
 
               {expandedId === item.id && (
                 <div className="qa-item-body">
-                  <div className="qa-reply">
-                    <div className="qa-reply-header">Quản Trị Viên</div>
-                    <p className="qa-reply-text">{item.answer}</p>
-                  </div>
+                  {item.answer ? (
+                    <div className="qa-reply">
+                      <div className="qa-reply-header">Quản Trị Viên</div>
+                      <p className="qa-reply-text">{item.answer}</p>
+                    </div>
+                  ) : (
+                    <div className="qa-reply pending">
+                      <div className="qa-reply-header">Hệ thống</div>
+                      <p className="qa-reply-text">Câu hỏi đang chờ phản hồi từ quản trị viên.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

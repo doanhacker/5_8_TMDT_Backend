@@ -57,8 +57,10 @@ CREATE TABLE IF NOT EXISTS user_addresses (
 -- 5. brands (btl_THUONG_HIEU)
 CREATE TABLE IF NOT EXISTS brands (
     brand_id INT AUTO_INCREMENT PRIMARY KEY,
-    brand_name VARCHAR(50) UNIQUE NOT NULL,
-    logo_url VARCHAR(255)
+    brand_name VARCHAR(50) NOT NULL,
+    logo_url VARCHAR(255),
+    device_type ENUM('LAPTOP', 'PHONE', 'TABLET', 'WATCH', 'AUDIO', 'ACCESSORY', 'OTHER') NOT NULL DEFAULT 'OTHER',
+    UNIQUE KEY uniq_brand_name_device_type (brand_name, device_type)
 );
 
 -- 6. categories (btl_DANH_MUC)
@@ -66,6 +68,7 @@ CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
     category_name VARCHAR(100) NOT NULL,
     parent_category_id INT DEFAULT NULL,
+    device_type ENUM('LAPTOP', 'PHONE', 'TABLET', 'WATCH', 'AUDIO', 'ACCESSORY', 'OTHER') NOT NULL DEFAULT 'OTHER',
     FOREIGN KEY (parent_category_id) REFERENCES categories(category_id) ON DELETE SET NULL
 );
 

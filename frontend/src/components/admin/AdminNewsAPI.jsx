@@ -27,7 +27,7 @@ import { Node } from "@tiptap/core"
 import Youtube from "@tiptap/extension-youtube"
 
 import "../../styles/AdminNews.css"
-import { BLOG_API_BASE } from "../../config/api"
+import { BLOG_API_BASE, getImageUrl } from "../../config/api"
 import { getAuthToken } from "../../lib/authToken"
 
 const API_BASE = BLOG_API_BASE
@@ -666,7 +666,7 @@ function AdminNewsAPI() {
                     </div>
                     {postForm.thumbnail_url && (
                       <img
-                        src={postForm.thumbnail_url}
+                        src={getImageUrl(postForm.thumbnail_url)}
                         alt="Preview"
                         className="thumbnail-preview"
                         onError={(e) => (e.target.style.display = "none")}
@@ -799,7 +799,7 @@ function AdminNewsAPI() {
                     <div key={post.post_id} className="post-item">
                       <div className="post-thumbnail">
                         {post.thumbnail_url ? (
-                          <img src={post.thumbnail_url} alt={post.title} />
+                          <img src={getImageUrl(post.thumbnail_url)} alt={post.title} />
                         ) : (
                           <div className="placeholder-thumbnail">
                             <FiImage />

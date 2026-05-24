@@ -2,6 +2,7 @@ const ProductCategory = require('../models/productCategoryModel');
 const db = require('../config/db');
 const { parseQueryParams, getOffset, buildPaginationResult } = require('../helpers/queryHelper');
 const { isValidId } = require('../helpers/productValidationHelper');
+const { emitBroadcast } = require('../socket/realtime');
 
 const productCategoryController = {
     /**
@@ -10,12 +11,15 @@ const productCategoryController = {
      */
     getAllCategories: async (req, res) => {
         try {
-            const { tree } = req.query;
+            const { tree, deviceType } = req.query;
+            const normalizedDeviceType = deviceType
+                ? ProductCategory.normalizeDeviceType(deviceType)
+                : undefined;
             let categories;
             if (tree === 'true') {
-                categories = await ProductCategory.getTree();
+                categories = await ProductCategory.getTree({ deviceType: normalizedDeviceType });
             } else {
-                categories = await ProductCategory.getAll();
+                categories = await ProductCategory.getAll({ deviceType: normalizedDeviceType });
             }
             
             res.status(200).json({
@@ -62,10 +66,15 @@ const productCategoryController = {
      */
     createCategory: async (req, res) => {
         try {
-            const { category_name, parent_category_id } = req.body;
+            const { category_name, parent_category_id, device_type } = req.body;
+            let normalizedDeviceType = ProductCategory.normalizeDeviceType(device_type || 'LAPTOP');
 
             // Validate dữ liệu đầu vào
-            const errors = ProductCategory.validateProductCategoryData({ category_name, parent_category_id });
+            const errors = ProductCategory.validateProductCategoryData({
+                category_name,
+                parent_category_id,
+                device_type: normalizedDeviceType,
+            });
             if (errors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu danh mục sản phẩm', errors });
             }
@@ -76,17 +85,41 @@ const productCategoryController = {
                 if (!parentCategory) {
                     return res.status(404).json({ success: false, message: 'Danh mục cha không tồn tại.' });
                 }
+
+                const parentType = ProductCategory.normalizeDeviceType(parentCategory.device_type || 'LAPTOP');
+                if (normalizedDeviceType !== parentType) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Danh mục con phải cùng loại thiết bị với danh mục cha.',
+                    });
+                }
+
+                normalizedDeviceType = parentType;
             }
 
             const newCategoryId = await ProductCategory.create({ 
                 category_name, 
-                parent_category_id: parent_category_id ? parseInt(parent_category_id) : null 
+                parent_category_id: parent_category_id ? parseInt(parent_category_id) : null,
+                device_type: normalizedDeviceType,
             });
 
             res.status(201).json({
                 success: true,
                 message: 'Thêm danh mục sản phẩm thành công!',
-                data: { category_id: newCategoryId, category_name, parent_category_id }
+                data: {
+                    category_id: newCategoryId,
+                    category_name,
+                    parent_category_id,
+                    device_type: normalizedDeviceType,
+                }
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'category',
+                action: 'created',
+                deviceType: normalizedDeviceType,
+                id: newCategoryId,
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi thêm danh mục sản phẩm:', error);
@@ -101,7 +134,7 @@ const productCategoryController = {
     updateCategory: async (req, res) => {
         try {
             const { id } = req.params;
-            const { category_name, parent_category_id } = req.body;
+            const { category_name, parent_category_id, device_type } = req.body;
 
             if (!isValidId(id)) {
                 return res.status(400).json({ success: false, message: 'ID danh mục sản phẩm không hợp lệ.' });
@@ -112,14 +145,22 @@ const productCategoryController = {
                 return res.status(404).json({ success: false, message: 'Danh mục sản phẩm không tồn tại để cập nhật!' });
             }
 
+            const normalizedDeviceType = device_type !== undefined
+                ? ProductCategory.normalizeDeviceType(device_type)
+                : undefined;
+
             // Validate dữ liệu đầu vào
-            const errors = ProductCategory.validateProductCategoryData({ category_name, parent_category_id }, true); // isUpdate = true
+            const errors = ProductCategory.validateProductCategoryData(
+                { category_name, parent_category_id, device_type: normalizedDeviceType },
+                true
+            ); // isUpdate = true
             if (errors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu cập nhật danh mục sản phẩm', errors });
             }
 
             const updateData = {};
             if (category_name !== undefined) updateData.category_name = category_name;
+            if (normalizedDeviceType !== undefined) updateData.device_type = normalizedDeviceType;
             if (parent_category_id !== undefined) {
                 // Kiểm tra parent_category_id mới
                 if (parent_category_id !== null) {
@@ -127,6 +168,18 @@ const productCategoryController = {
                     if (!parentCategory) {
                         return res.status(404).json({ success: false, message: 'Danh mục cha không tồn tại.' });
                     }
+
+                    const parentType = ProductCategory.normalizeDeviceType(parentCategory.device_type || 'LAPTOP');
+                    const candidateType = updateData.device_type
+                        || ProductCategory.normalizeDeviceType(existingCategory.device_type || 'LAPTOP');
+                    if (candidateType !== parentType) {
+                        return res.status(400).json({
+                            success: false,
+                            message: 'Danh mục con phải cùng loại thiết bị với danh mục cha.',
+                        });
+                    }
+
+                    updateData.device_type = parentType;
                 }
                 updateData.parent_category_id = parent_category_id === null ? null : parseInt(parent_category_id);
             }
@@ -149,6 +202,14 @@ const productCategoryController = {
             res.status(200).json({
                 success: true,
                 message: 'Cập nhật danh mục sản phẩm thành công!'
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'category',
+                action: 'updated',
+                deviceType: updateData.device_type || existingCategory.device_type,
+                id: Number(id),
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi cập nhật danh mục sản phẩm:', error);
@@ -192,6 +253,14 @@ const productCategoryController = {
             res.status(200).json({
                 success: true,
                 message: 'Xóa danh mục sản phẩm thành công!'
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'category',
+                action: 'deleted',
+                deviceType: existingCategory.device_type,
+                id: Number(id),
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi xóa danh mục sản phẩm:', error);

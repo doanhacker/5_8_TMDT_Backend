@@ -305,7 +305,14 @@ export default function AdminProducts({
               <label>Loại thiết bị *</label>
               <select
                 value={productForm.deviceType}
-                onChange={(e) => setProductForm((prev) => ({ ...prev, deviceType: e.target.value }))}
+                onChange={(e) => setProductForm((prev) => ({
+                  ...prev,
+                  deviceType: e.target.value,
+                  brand_id: "",
+                  brand: "",
+                  category_id: "",
+                  series: "",
+                }))}
                 required
                 disabled={isScopedAdmin}
               >
@@ -353,12 +360,12 @@ export default function AdminProducts({
 
             <div className="adm-form-row">
               <label>Giá bán *</label>
-              <input type="number" placeholder="Tự lấy từ phiên bản đầu tiên" value={productForm.price} onChange={(e) => setProductForm((prev) => ({ ...prev, price: e.target.value }))} />
+              <input type="text" placeholder="Tự lấy từ phiên bản đầu tiên" value={productForm.price} onChange={(e) => setProductForm((prev) => ({ ...prev, price: e.target.value }))} />
             </div>
 
             <div className="adm-form-row">
               <label>Giá cũ</label>
-              <input type="number" placeholder="24490000" value={productForm.oldPrice} onChange={(e) => setProductForm((prev) => ({ ...prev, oldPrice: e.target.value }))} />
+              <input type="text" placeholder="24490000" value={productForm.oldPrice} onChange={(e) => setProductForm((prev) => ({ ...prev, oldPrice: e.target.value }))} />
             </div>
 
             {visibleInfoFields.has("cpu") && (
@@ -413,7 +420,7 @@ export default function AdminProducts({
             {visibleInfoFields.has("weightKg") && (
               <div className="adm-form-row">
                 <label>Trọng lượng (kg)</label>
-                <input type="number" step="0.1" min="0.1" placeholder="VD: 1.8" value={productForm.weightKg} onChange={(e) => setProductForm((prev) => ({ ...prev, weightKg: e.target.value }))} />
+                <input type="text" placeholder="VD: 1.8kg" value={productForm.weightKg} onChange={(e) => setProductForm((prev) => ({ ...prev, weightKg: e.target.value }))} />
               </div>
             )}
 
@@ -427,14 +434,14 @@ export default function AdminProducts({
             {visibleInfoFields.has("batteryCapacityMah") && (
               <div className="adm-form-row">
                 <label>Pin (mAh)</label>
-                <input type="number" placeholder="VD: 5000" value={productForm.batteryCapacityMah} onChange={(e) => setProductForm((prev) => ({ ...prev, batteryCapacityMah: e.target.value }))} />
+                <input type="text" placeholder="VD: 5000 mAh" value={productForm.batteryCapacityMah} onChange={(e) => setProductForm((prev) => ({ ...prev, batteryCapacityMah: e.target.value }))} />
               </div>
             )}
 
             {visibleInfoFields.has("refreshRateHz") && (
               <div className="adm-form-row">
                 <label>Tần số quét (Hz)</label>
-                <input type="number" placeholder="VD: 120" value={productForm.refreshRateHz} onChange={(e) => setProductForm((prev) => ({ ...prev, refreshRateHz: e.target.value }))} />
+                <input type="text" placeholder="VD: 120Hz" value={productForm.refreshRateHz} onChange={(e) => setProductForm((prev) => ({ ...prev, refreshRateHz: e.target.value }))} />
               </div>
             )}
 
@@ -492,7 +499,7 @@ export default function AdminProducts({
             <div className="adm-form-row-3col">
               <div className="adm-form-item">
                 <label>Số lượng kho</label>
-                <input type="number" placeholder="Ưu tiên từ phiên bản" value={productForm.stock} onChange={(e) => setProductForm((prev) => ({ ...prev, stock: e.target.value }))} />
+                  <input type="text" placeholder="Ưu tiên từ phiên bản" value={productForm.stock} onChange={(e) => setProductForm((prev) => ({ ...prev, stock: e.target.value }))} />
               </div>
               <label className="adm-check-item">
                 <input type="checkbox" checked={productForm.hasAI} onChange={(e) => setProductForm((prev) => ({ ...prev, hasAI: e.target.checked }))} />
@@ -613,7 +620,7 @@ export default function AdminProducts({
                 )}
                 <div>
                   <label>Tồn kho *</label>
-                  <input type="number" placeholder="VD: 10" value={variantForm.stock} onChange={(e) => setVariantForm((prev) => ({ ...prev, stock: e.target.value }))} />
+                  <input type="text" placeholder="VD: 10" value={variantForm.stock} onChange={(e) => setVariantForm((prev) => ({ ...prev, stock: e.target.value }))} />
                 </div>
                 <div>
                   <label>Trạng thái *</label>
@@ -626,11 +633,11 @@ export default function AdminProducts({
                 </div>
                 <div>
                   <label>Giá gốc *</label>
-                  <input type="number" placeholder="VD: 25000000" value={variantForm.originalPrice} onChange={(e) => setVariantForm((prev) => ({ ...prev, originalPrice: e.target.value }))} />
+                  <input type="text" placeholder="VD: 25000000" value={variantForm.originalPrice} onChange={(e) => setVariantForm((prev) => ({ ...prev, originalPrice: e.target.value }))} />
                 </div>
                 <div>
                   <label>Giá khuyến mãi</label>
-                  <input type="number" placeholder="VD: 22990000" value={variantForm.discountPrice} onChange={(e) => setVariantForm((prev) => ({ ...prev, discountPrice: e.target.value }))} />
+                  <input type="text" placeholder="VD: 22990000" value={variantForm.discountPrice} onChange={(e) => setVariantForm((prev) => ({ ...prev, discountPrice: e.target.value }))} />
                 </div>
                 <div className="adm-span2">
                   <label>Thông số mở rộng phiên bản (JSON object)</label>

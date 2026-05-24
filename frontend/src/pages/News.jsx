@@ -4,9 +4,37 @@ import '../styles/News.css';
 import Breadcrumb from '../components/Breadcrumb';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { BLOG_API_BASE } from '../config/api';
+import { BLOG_API_BASE, getImageUrl } from '../config/api';
 
 const API_URL = BLOG_API_BASE;
+
+const normalizeMediaUrlsInHtml = (html) => {
+  const raw = String(html || '');
+  if (!raw) return '';
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(raw, 'text/html');
+
+    doc.querySelectorAll('[src]').forEach((element) => {
+      const src = element.getAttribute('src');
+      if (!src) return;
+      if (/^(https?:|data:|blob:|\/\/)/i.test(src)) return;
+      element.setAttribute('src', getImageUrl(src));
+    });
+
+    doc.querySelectorAll('a[href]').forEach((element) => {
+      const href = element.getAttribute('href');
+      if (!href) return;
+      if (/^(https?:|mailto:|tel:|#|\/\/)/i.test(href)) return;
+      element.setAttribute('href', getImageUrl(href));
+    });
+
+    return doc.body.innerHTML;
+  } catch (error) {
+    return raw;
+  }
+};
 
 export default function News() {
   const [selectedNews, setSelectedNews] = useState(null);
@@ -154,9 +182,7 @@ export default function News() {
                   <article key={news.post_id} className="news-card">
                     <div className="news-image">
                       <img
-                        src={news.thumbnail_url
-                          ? (news.thumbnail_url.startsWith('http') ? news.thumbnail_url : `${API_URL.replace('/api/blog', '')}${news.thumbnail_url}`)
-                          : "https://via.placeholder.com/800x450?text=No+Image"}
+                        src={news.thumbnail_url ? getImageUrl(news.thumbnail_url) : "https://via.placeholder.com/800x450?text=No+Image"}
                         alt={news.title}
                       />
                       <span className="news-category">{news.category_name || "Tin tức"}</span>
@@ -218,14 +244,14 @@ export default function News() {
             </div>
             {selectedNews.thumbnail_url && (
               <img
-                src={selectedNews.thumbnail_url.startsWith('http') ? selectedNews.thumbnail_url : `${API_URL.replace('/api/blog', '')}${selectedNews.thumbnail_url}`}
+                src={getImageUrl(selectedNews.thumbnail_url)}
                 alt={selectedNews.title}
                 className="detail-image"
               />
             )}
             <div
               className="detail-content"
-              dangerouslySetInnerHTML={{ __html: selectedNews.content_html }}
+              dangerouslySetInnerHTML={{ __html: normalizeMediaUrlsInHtml(selectedNews.content_html) }}
             />
           </div>
         ) : (

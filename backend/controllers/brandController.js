@@ -2,6 +2,7 @@ const Brand = require('../models/brandModel');
 const db = require('../config/db');
 const { parseQueryParams, getOffset, buildPaginationResult } = require('../helpers/queryHelper');
 const { isValidId } = require('../helpers/productValidationHelper');
+const { emitBroadcast } = require('../socket/realtime');
 
 const brandController = {
     /**
@@ -9,7 +10,11 @@ const brandController = {
      */
     getAllBrands: async (req, res) => {
         try {
-            const brands = await Brand.getAll();
+            const requestedDeviceType = req.query.deviceType
+                ? Brand.normalizeDeviceType(req.query.deviceType)
+                : undefined;
+
+            const brands = await Brand.getAll({ deviceType: requestedDeviceType });
             res.status(200).json({
                 success: true,
                 message: 'Lấy danh sách thương hiệu thành công',
@@ -53,20 +58,29 @@ const brandController = {
      */
     createBrand: async (req, res) => {
         try {
-            const { brand_name, logo_url } = req.body;
+            const { brand_name, logo_url, device_type } = req.body;
 
             // Validate dữ liệu đầu vào
-            const errors = Brand.validateBrandData({ brand_name, logo_url });
+            const normalizedDeviceType = Brand.normalizeDeviceType(device_type || 'LAPTOP');
+            const errors = Brand.validateBrandData({ brand_name, logo_url, device_type: normalizedDeviceType });
             if (errors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu thương hiệu', errors });
             }
 
-            const newBrandId = await Brand.create({ brand_name, logo_url });
+            const newBrandId = await Brand.create({ brand_name, logo_url, device_type: normalizedDeviceType });
 
             res.status(201).json({
                 success: true,
                 message: 'Thêm thương hiệu thành công!',
-                data: { brand_id: newBrandId, brand_name, logo_url }
+                data: { brand_id: newBrandId, brand_name, logo_url, device_type: normalizedDeviceType }
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'brand',
+                action: 'created',
+                deviceType: normalizedDeviceType,
+                id: newBrandId,
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi thêm thương hiệu:', error);
@@ -84,7 +98,7 @@ const brandController = {
     updateBrand: async (req, res) => {
         try {
             const { id } = req.params;
-            const { brand_name, logo_url } = req.body;
+            const { brand_name, logo_url, device_type } = req.body;
 
             if (!isValidId(id)) {
                 return res.status(400).json({ success: false, message: 'ID thương hiệu không hợp lệ.' });
@@ -96,7 +110,13 @@ const brandController = {
             }
 
             // Validate dữ liệu đầu vào
-            const errors = Brand.validateBrandData({ brand_name, logo_url }, true); // isUpdate = true
+            const normalizedDeviceType = device_type !== undefined
+                ? Brand.normalizeDeviceType(device_type)
+                : undefined;
+            const errors = Brand.validateBrandData(
+                { brand_name, logo_url, device_type: normalizedDeviceType },
+                true
+            ); // isUpdate = true
             if (errors.length > 0) {
                 return res.status(400).json({ success: false, message: 'Lỗi dữ liệu cập nhật thương hiệu', errors });
             }
@@ -104,6 +124,7 @@ const brandController = {
             const updateData = {};
             if (brand_name !== undefined) updateData.brand_name = brand_name;
             if (logo_url !== undefined) updateData.logo_url = logo_url;
+            if (normalizedDeviceType !== undefined) updateData.device_type = normalizedDeviceType;
 
             if (Object.keys(updateData).length === 0) {
                 return res.status(400).json({ success: false, message: 'Không có thông tin nào được cung cấp để cập nhật.' });
@@ -119,6 +140,14 @@ const brandController = {
             res.status(200).json({
                 success: true,
                 message: 'Cập nhật thương hiệu thành công!'
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'brand',
+                action: 'updated',
+                deviceType: normalizedDeviceType || existingBrand.device_type,
+                id: Number(id),
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi cập nhật thương hiệu:', error);
@@ -158,6 +187,14 @@ const brandController = {
             res.status(200).json({
                 success: true,
                 message: 'Xóa thương hiệu thành công!'
+            });
+
+            emitBroadcast('catalog:changed', {
+                resource: 'brand',
+                action: 'deleted',
+                deviceType: existingBrand.device_type,
+                id: Number(id),
+                at: new Date().toISOString(),
             });
         } catch (error) {
             console.error('Lỗi khi xóa thương hiệu:', error);

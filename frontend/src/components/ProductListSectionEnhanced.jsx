@@ -17,10 +17,18 @@ const getDiscountLabel = (item) => {
   return ''
 }
 
-export default function ProductListSection({ filters, sortBy, selectedCategory = '' }) {
+export default function ProductListSection({ filters, sortBy, selectedCategory = '', deviceType = 'LAPTOP' }) {
   const navigate = useNavigate()
   const { products, loading } = useProducts()
   const { addToCart } = useCart()
+
+  const normalizedDeviceType = String(deviceType || '').trim().toUpperCase()
+
+  const isInDeviceScope = (product) => {
+    const type = String(product?.deviceType || '').trim().toUpperCase()
+    if (!normalizedDeviceType) return true
+    return type === normalizedDeviceType || (!type && normalizedDeviceType === 'LAPTOP')
+  }
 
   if (loading) {
     return (
@@ -36,6 +44,8 @@ export default function ProductListSection({ filters, sortBy, selectedCategory =
 
   // Lọc sản phẩm
   const filteredProducts = products.filter((product) => {
+    if (!isInDeviceScope(product)) return false
+
     if (selectedCategory && product.series !== selectedCategory) return false
 
     // Lọc theo sẵn hàng

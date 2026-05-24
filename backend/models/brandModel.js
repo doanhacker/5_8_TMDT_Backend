@@ -1,8 +1,12 @@
 const db = require('../config/db');
 
+const VALID_DEVICE_TYPES = ['LAPTOP', 'PHONE', 'TABLET', 'WATCH', 'AUDIO', 'ACCESSORY', 'OTHER'];
+
+const normalizeDeviceType = (deviceType) => String(deviceType || '').trim().toUpperCase();
+
 // --- Helper Validation for Brand Data ---
 const validateBrandData = (data, isUpdate = false) => {
-    const { brand_name, logo_url } = data;
+    const { brand_name, logo_url, device_type } = data;
     const errors = [];
 
     if (!isUpdate) {
@@ -11,6 +15,15 @@ const validateBrandData = (data, isUpdate = false) => {
 
     if (brand_name !== undefined && !brand_name.trim()) {
         errors.push('Tên thương hiệu không được để trống.');
+    }
+    if (!isUpdate && !String(device_type || '').trim()) {
+        errors.push('Loại thiết bị không được để trống.');
+    }
+    if (device_type !== undefined) {
+        const normalizedType = normalizeDeviceType(device_type);
+        if (!VALID_DEVICE_TYPES.includes(normalizedType)) {
+            errors.push(`Loại thiết bị không hợp lệ. Chỉ chấp nhận: ${VALID_DEVICE_TYPES.join(', ')}.`);
+        }
     }
     // logo_url có thể null hoặc rỗng, không cần validate chặt chẽ về nội dung
     
@@ -22,9 +35,18 @@ const Brand = {
      * Lấy tất cả thương hiệu.
      * @returns {Promise<Array>} Danh sách thương hiệu.
      */
-    getAll: async () => {
-        const query = 'SELECT brand_id, brand_name, logo_url FROM brands ORDER BY brand_name ASC';
-        const [rows] = await db.query(query);
+    getAll: async (options = {}) => {
+        let query = 'SELECT brand_id, brand_name, logo_url, device_type FROM brands';
+        const values = [];
+
+        if (options.deviceType) {
+            query += ' WHERE UPPER(TRIM(device_type)) = ?';
+            values.push(normalizeDeviceType(options.deviceType));
+        }
+
+        query += ' ORDER BY brand_name ASC';
+
+        const [rows] = await db.query(query, values);
         return rows;
     },
 
@@ -34,7 +56,7 @@ const Brand = {
      * @returns {Promise<Object|null>} Đối tượng thương hiệu hoặc null nếu không tìm thấy.
      */
     getById: async (id) => {
-        const query = 'SELECT brand_id, brand_name, logo_url FROM brands WHERE brand_id = ? LIMIT 1';
+        const query = 'SELECT brand_id, brand_name, logo_url, device_type FROM brands WHERE brand_id = ? LIMIT 1';
         const [rows] = await db.query(query, [id]);
         return rows[0] || null;
     },
@@ -45,9 +67,9 @@ const Brand = {
      * @returns {Promise<number>} ID của thương hiệu vừa được thêm.
      */
     create: async (brandData) => {
-        const { brand_name, logo_url } = brandData;
-        const query = 'INSERT INTO brands (brand_name, logo_url) VALUES (?, ?)';
-        const [result] = await db.query(query, [brand_name, logo_url || null]);
+        const { brand_name, logo_url, device_type } = brandData;
+        const query = 'INSERT INTO brands (brand_name, logo_url, device_type) VALUES (?, ?, ?)';
+        const [result] = await db.query(query, [brand_name, logo_url || null, normalizeDeviceType(device_type || 'LAPTOP')]);
         return result.insertId;
     },
 
@@ -58,14 +80,14 @@ const Brand = {
      * @returns {Promise<number>} Số dòng bị ảnh hưởng (0 hoặc 1).
      */
     update: async (id, updateData) => {
-        const allowedFields = ['brand_name', 'logo_url'];
+        const allowedFields = ['brand_name', 'logo_url', 'device_type'];
         const fieldsToUpdate = [];
         const values = [];
 
         allowedFields.forEach(field => {
             if (updateData[field] !== undefined) {
                 fieldsToUpdate.push(`${field} = ?`);
-                values.push(updateData[field]);
+                values.push(field === 'device_type' ? normalizeDeviceType(updateData[field]) : updateData[field]);
             }
         });
 
@@ -100,5 +122,7 @@ const Brand = {
 
 module.exports = {
     ...Brand, // Export tất cả các hàm của Brand
-    validateBrandData // Export thêm hàm validation
+    validateBrandData, // Export thêm hàm validation
+    normalizeDeviceType,
+    VALID_DEVICE_TYPES,
 };

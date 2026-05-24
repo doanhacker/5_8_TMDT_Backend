@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { FiChevronRight, FiTag } from "react-icons/fi"
+import QASection from "../components/QASection"
 import Footer from "../components/Footer"
 
 const CATEGORY_META = {
@@ -107,6 +108,8 @@ export default function ProductsCatalogPage() {
             </article>
           ))}
         </section>
+
+        <QASection title="Hỏi & Đáp - Danh mục sản phẩm" subtitle="Đặt câu hỏi về sản phẩm, danh mục và lựa chọn phù hợp với nhu cầu" introTitle="Bạn cần tư vấn danh mục nào?" introText="Gửi câu hỏi, chúng tôi sẽ hỗ trợ bạn chọn đúng sản phẩm." listTitle="Câu hỏi gần đây" />
       </main>
       <Footer />
     </>

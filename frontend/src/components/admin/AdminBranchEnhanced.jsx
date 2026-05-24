@@ -2,10 +2,23 @@ import { useMemo, useState, useEffect } from "react"
 import { FiEdit, FiPlus, FiRefreshCcw, FiSave, FiTrash2, FiX } from "react-icons/fi"
 import { buildApiUrl } from "../../config/api"
 import { getAuthToken } from "../../lib/authToken"
+import { getRealtimeClient } from "../../lib/realtimeClient"
+
+const DEVICE_TYPE_OPTIONS = [
+  { value: "LAPTOP", label: "Laptop" },
+  { value: "PHONE", label: "Điện thoại" },
+  { value: "TABLET", label: "Tablet" },
+  { value: "WATCH", label: "Đồng hồ" },
+  { value: "AUDIO", label: "Thiết bị âm thanh" },
+  { value: "ACCESSORY", label: "Phụ kiện" },
+  { value: "OTHER", label: "Khác" },
+]
 
 export default function AdminBrand() {
   const [brands, setBrands] = useState([])
   const [brandName, setBrandName] = useState("")
+  const [deviceType, setDeviceType] = useState("LAPTOP")
+  const [filterDeviceType, setFilterDeviceType] = useState("LAPTOP")
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState("")
   const [editId, setEditId] = useState(null)
@@ -25,13 +38,31 @@ export default function AdminBrand() {
   }, [brands])  
 
   useEffect(() => {
-    fetchBrands()
-  }, [])
+    fetchBrands(filterDeviceType)
+  }, [filterDeviceType])
 
-  const fetchBrands = async () => {
+  useEffect(() => {
+    const socket = getRealtimeClient()
+    const handleCatalogChanged = (event) => {
+      if (!event || event.resource !== "brand") return
+      fetchBrands(filterDeviceType)
+    }
+
+    socket.on("catalog:changed", handleCatalogChanged)
+    return () => {
+      socket.off("catalog:changed", handleCatalogChanged)
+    }
+  }, [filterDeviceType])
+
+  const fetchBrands = async (requestedDeviceType = filterDeviceType) => {
     try {
       setLoading(true)
-      const response = await fetch(API_BASE)
+      const requestUrl = new URL(API_BASE)
+      if (requestedDeviceType) {
+        requestUrl.searchParams.set("deviceType", requestedDeviceType)
+      }
+
+      const response = await fetch(requestUrl.toString())
       const data = await response.json()
 
       if (!response.ok) {
@@ -49,6 +80,7 @@ export default function AdminBrand() {
 
   const resetForm = () => {
     setBrandName("")
+    setDeviceType(filterDeviceType)
     setLogoFile(null)
     setLogoPreview("")
     setEditId(null)
@@ -87,6 +119,7 @@ export default function AdminBrand() {
 
       const payload = {
         brand_name: brandName.trim(),
+        device_type: deviceType,
       }
       if (uploadedLogoUrl) {
         payload.logo_url = uploadedLogoUrl
@@ -108,7 +141,7 @@ export default function AdminBrand() {
       }
 
       resetForm()
-      fetchBrands()
+  fetchBrands(filterDeviceType)
     } catch (error) {
       console.error("Error saving brand:", error)
       alert(`Lỗi: ${error.message}`)
@@ -119,6 +152,7 @@ export default function AdminBrand() {
 
   const handleEdit = (brand) => {
     setBrandName(brand.brand_name || "")
+    setDeviceType(brand.device_type || "LAPTOP")
     setLogoFile(null)
     setLogoPreview(brand.logo_url || "")
     setEditId(brand.brand_id)
@@ -143,7 +177,7 @@ export default function AdminBrand() {
           throw new Error(data.message || "Xóa thương hiệu thất bại")
         }
 
-        fetchBrands()
+        fetchBrands(filterDeviceType)
       } catch (error) {
         console.error("Error deleting brand:", error)
         alert(`Lỗi: ${error.message}`)
@@ -169,6 +203,19 @@ export default function AdminBrand() {
               onChange={(e) => setBrandName(e.target.value)}
               required
             />
+          </div>
+
+          <div className="adm-form-row adm-span2">
+            <label>Loại thiết bị *</label>
+            <select
+              value={deviceType}
+              onChange={(e) => setDeviceType(e.target.value)}
+              required
+            >
+              {DEVICE_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="adm-form-row adm-span2">
@@ -215,8 +262,22 @@ export default function AdminBrand() {
         <div className="adm-card-title">
           <h3>Danh sách thương hiệu</h3>
           <div className="adm-row-actions">
+            <select
+              className="adm-filter-select"
+              value={filterDeviceType}
+              onChange={(e) => {
+                setFilterDeviceType(e.target.value)
+                if (!isEditing) {
+                  setDeviceType(e.target.value)
+                }
+              }}
+            >
+              {DEVICE_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
             <span className="adm-pill adm-pill-muted">{brands.length} items</span>
-            <button type="button" className="adm-btn adm-btn-light" onClick={fetchBrands} disabled={loading}>
+            <button type="button" className="adm-btn adm-btn-light" onClick={() => fetchBrands(filterDeviceType)} disabled={loading}>
               <FiRefreshCcw /> {loading ? "Đang tải..." : "Làm mới"}
             </button>
           </div>
@@ -229,6 +290,7 @@ export default function AdminBrand() {
                 <th>ID</th>
                 <th>Logo</th>
                 <th>Tên thương hiệu</th>
+                <th>Thiết bị</th>
                 <th>Logo URL</th>
                 <th>Tác vụ</th>
               </tr>
@@ -236,7 +298,7 @@ export default function AdminBrand() {
             <tbody>
               {!loading && brands.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="adm-branch-empty-cell">Chưa có thương hiệu nào.</td>
+                  <td colSpan={6} className="adm-branch-empty-cell">Chưa có thương hiệu nào.</td>
                 </tr>
               ) : (
                 brands.map((brand) => (
@@ -250,6 +312,7 @@ export default function AdminBrand() {
                       )}
                     </td>
                     <td className="adm-ellipsis">{brand.brand_name}</td>
+                    <td>{brand.device_type || "-"}</td>
                     <td className="adm-branch-url">{brand.logo_url || "-"}</td>
                     <td>
                       <div className="adm-row-actions">

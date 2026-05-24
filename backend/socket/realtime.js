@@ -29,16 +29,18 @@ const initRealtime = (httpServer) => {
     });
 
     ioInstance.on('connection', (socket) => {
+        // Allow anonymous connections for public realtime events.
+        // If token is valid, also attach user room for private notifications.
+        const token = getTokenFromHandshake(socket);
+        if (!token) return;
+
         try {
-            const token = getTokenFromHandshake(socket);
-            if (!token) return socket.disconnect(true);
-
             const userId = getUserIdFromToken(token);
-            if (!userId) return socket.disconnect(true);
-
-            socket.join(`user:${userId}`);
+            if (userId) {
+                socket.join(`user:${userId}`);
+            }
         } catch {
-            socket.disconnect(true);
+            // Ignore invalid token for public channels.
         }
     });
 
@@ -59,9 +61,15 @@ const emitToUsers = (userIds, event, payload) => {
     }
 };
 
+const emitBroadcast = (event, payload) => {
+    if (!ioInstance) return;
+    ioInstance.emit(event, payload);
+};
+
 module.exports = {
     initRealtime,
     getIO,
     emitToUser,
-    emitToUsers
+    emitToUsers,
+    emitBroadcast,
 };

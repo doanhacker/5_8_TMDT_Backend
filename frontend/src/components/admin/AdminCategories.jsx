@@ -1,6 +1,16 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { FiEdit2, FiPlus, FiRefreshCcw, FiSearch, FiTrash2 } from "react-icons/fi"
 import "../../styles/AdminCategories.css"
+
+const DEVICE_TYPE_OPTIONS = [
+  { value: "LAPTOP", label: "Laptop" },
+  { value: "PHONE", label: "Điện thoại" },
+  { value: "TABLET", label: "Tablet" },
+  { value: "WATCH", label: "Đồng hồ" },
+  { value: "AUDIO", label: "Thiết bị âm thanh" },
+  { value: "ACCESSORY", label: "Phụ kiện" },
+  { value: "OTHER", label: "Khác" },
+]
 
 export default function AdminCategories({
   categories = [],
@@ -8,17 +18,28 @@ export default function AdminCategories({
   onCreateCategory,
   onUpdateCategory,
   onDeleteCategory,
+  deviceType = "LAPTOP",
+  onDeviceTypeChange,
 }) {
   const [keyword, setKeyword] = useState("")
   const [formData, setFormData] = useState({
     category_id: "",
     category_name: "",
     parent_category_id: "",
+    device_type: deviceType,
   })
 
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, device_type: deviceType }))
+  }, [deviceType])
+
+  const selectedDeviceType = formData.device_type || deviceType
+
   const parentCategories = useMemo(() => {
-    return categories.filter((item) => !item.parent_category_id)
-  }, [categories])
+    return categories.filter(
+      (item) => !item.parent_category_id && String(item.device_type || "").toUpperCase() === selectedDeviceType
+    )
+  }, [categories, selectedDeviceType])
 
   const filteredCategories = useMemo(() => {
     if (!keyword.trim()) return categories
@@ -43,6 +64,7 @@ export default function AdminCategories({
       category_id: "",
       category_name: "",
       parent_category_id: "",
+      device_type: deviceType,
     })
   }
 
@@ -58,6 +80,7 @@ export default function AdminCategories({
     const payload = {
       category_name: name,
       parent_category_id: formData.parent_category_id || null,
+      device_type: formData.device_type || deviceType,
     }
 
     try {
@@ -77,6 +100,7 @@ export default function AdminCategories({
       category_id: category.category_id,
       category_name: category.category_name || "",
       parent_category_id: category.parent_category_id || "",
+      device_type: category.device_type || deviceType,
     })
   }
 
@@ -141,6 +165,28 @@ export default function AdminCategories({
                 }
                 placeholder="Nhập tên danh mục"
               />
+            </div>
+
+            <div className="catm-form-group">
+              <label>Loại thiết bị</label>
+              <select
+                value={formData.device_type}
+                onChange={(e) => {
+                  const nextType = e.target.value
+                  setFormData((prev) => ({
+                    ...prev,
+                    device_type: nextType,
+                    parent_category_id: "",
+                  }))
+                  if (onDeviceTypeChange) {
+                    onDeviceTypeChange(nextType)
+                  }
+                }}
+              >
+                {DEVICE_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
             </div>
 
             <div className="catm-form-group">
@@ -211,6 +257,7 @@ export default function AdminCategories({
                   <tr>
                     <th>ID</th>
                     <th>Tên danh mục</th>
+                    <th>Thiết bị</th>
                     <th>Loại</th>
                     <th>Danh mục cha</th>
                     <th>Thao tác</th>
@@ -225,6 +272,7 @@ export default function AdminCategories({
                         <tr key={item.category_id}>
                           <td>{item.category_id}</td>
                           <td className="catm-text-left">{item.category_name}</td>
+                          <td>{item.device_type || "-"}</td>
                           <td>
                             <span
                               className={`catm-badge ${
@@ -262,7 +310,7 @@ export default function AdminCategories({
                     })
                   ) : (
                     <tr>
-                      <td colSpan="5" className="catm-empty-row">
+                      <td colSpan="6" className="catm-empty-row">
                         Không có danh mục phù hợp
                       </td>
                     </tr>

@@ -16,10 +16,18 @@ const getDiscountLabel = (item) => {
   return ''
 }
 
-export default function FeaturedProducts() {
+export default function FeaturedProducts({ deviceType = 'LAPTOP' }) {
   const { products, loading } = useProducts()
   const featuredProducts = useMemo(() => {
+    const isLaptopScope = (item) => {
+      const type = String(item?.deviceType || '').trim().toUpperCase()
+      const normalizedDeviceType = String(deviceType || '').trim().toUpperCase()
+      if (!normalizedDeviceType) return true
+      return type === normalizedDeviceType || (!type && normalizedDeviceType === 'LAPTOP')
+    }
+
     return products
+      .filter(isLaptopScope)
       .filter((item) => item.status !== "DISCONTINUED")
       .slice(0, 5)
       .map((item, index) => ({
@@ -27,7 +35,7 @@ export default function FeaturedProducts() {
         spec: item.config || item.specs || "Đang cập nhật",
         sold: Math.max(0, Math.min(Number(item.stock || 0), Math.round(Number(item.stock || 0) * (0.35 + index * 0.04)))),
       }))
-  }, [products])
+  }, [deviceType, products])
   const navigate = useNavigate()
 
   if (loading) {

@@ -35,6 +35,25 @@ const parseOptionalJsonObject = (value) => {
   throw new Error('Giá trị JSON phải là object hợp lệ')
 }
 
+const extractNumericValue = (value, { integer = false } = {}) => {
+  const text = String(value ?? '').trim()
+  if (!text) return null
+
+  const normalized = text.replace(/\s+/g, '').replace(/,/g, '.')
+  const match = normalized.match(/-?\d+(?:\.\d+)?/)
+  if (!match) return null
+
+  const parsed = Number(match[0])
+  if (!Number.isFinite(parsed)) return null
+
+  return integer ? Math.round(parsed) : parsed
+}
+
+const toSafeNumber = (value, fallback = 0, options = {}) => {
+  const parsed = extractNumericValue(value, options)
+  return parsed === null ? fallback : parsed
+}
+
 const normalizeStatusFromStock = (status, stockQuantity) => {
   if (status) return status
   return Number(stockQuantity || 0) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK'
@@ -127,12 +146,12 @@ const mapApiProductToUi = (product) => {
 }
 
 const mapVariantInputToApi = (variantInput) => {
-  const stockQuantity = parseInt(variantInput.stock ?? variantInput.stock_quantity ?? 0, 10) || 0
+  const stockQuantity = toSafeNumber(variantInput.stock ?? variantInput.stock_quantity, 0, { integer: true })
   const rawBenchmark = variantInput.cpu_benchmark_score ?? variantInput.cpuBenchmarkScore
   const parsedBenchmark =
     rawBenchmark === '' || rawBenchmark === null || rawBenchmark === undefined
       ? undefined
-      : parseInt(rawBenchmark, 10)
+      : toSafeNumber(rawBenchmark, NaN, { integer: true })
   const benchmarkValue = Number.isFinite(parsedBenchmark) && parsedBenchmark > 0
     ? parsedBenchmark
     : undefined
@@ -141,7 +160,7 @@ const mapVariantInputToApi = (variantInput) => {
   const parsedDiscountPrice =
     rawDiscountPrice === '' || rawDiscountPrice === null || rawDiscountPrice === undefined
       ? undefined
-      : parseFloat(rawDiscountPrice)
+      : toSafeNumber(rawDiscountPrice, NaN)
   const discountPriceValue = Number.isFinite(parsedDiscountPrice) ? parsedDiscountPrice : undefined
 
   const parsedExtraSpecs = parseOptionalJsonObject(
@@ -153,11 +172,11 @@ const mapVariantInputToApi = (variantInput) => {
     cpu_name: variantInput.cpu_name || variantInput.cpu || null,
     cpu_benchmark_score: benchmarkValue,
     gpu: variantInput.gpu || null,
-    ram_gb: parseInt(variantInput.ram_gb ?? variantInput.ram, 10),
+    ram_gb: toSafeNumber(variantInput.ram_gb ?? variantInput.ram, 0, { integer: true }),
     ram_type: variantInput.ram_type || variantInput.ramType || null,
-    storage_gb: parseInt(variantInput.storage_gb ?? variantInput.storage, 10),
+    storage_gb: toSafeNumber(variantInput.storage_gb ?? variantInput.storage, 0, { integer: true }),
     color_name: String(variantInput.color_name || variantInput.color || '').trim(),
-    original_price: parseFloat(variantInput.original_price ?? variantInput.originalPrice),
+    original_price: toSafeNumber(variantInput.original_price ?? variantInput.originalPrice, 0),
     discount_price: discountPriceValue,
     stock_quantity: stockQuantity,
     status: normalizeStatusFromStock(variantInput.status, stockQuantity),
@@ -297,11 +316,11 @@ export function ProductProvider({ children }) {
             throw new Error(`Phiên bản #${index + 1} chưa hợp lệ. Vui lòng kiểm tra lại thông tin.`)
           }
 
-          const ramValue = Number(v.ram)
-          const storageValue = Number(v.storage)
-          const originalPriceValue = Number(v.originalPrice)
+          const ramValue = toSafeNumber(v.ram, 0, { integer: true })
+          const storageValue = toSafeNumber(v.storage, 0, { integer: true })
+          const originalPriceValue = toSafeNumber(v.originalPrice, 0)
           const discountPriceValue = v.discountPrice !== undefined && v.discountPrice !== null && v.discountPrice !== ''
-            ? Number(v.discountPrice)
+            ? toSafeNumber(v.discountPrice, NaN)
             : null
 
           if (!Number.isFinite(ramValue) || ramValue <= 0) {
@@ -335,12 +354,12 @@ export function ProductProvider({ children }) {
         if (!productData.storage) {
           throw new Error('Vui lòng chọn dung lượng ổ cứng')
         }
-        if (!productData.price || parseFloat(productData.price) <= 0) {
+        if (!productData.price || toSafeNumber(productData.price, 0) <= 0) {
           throw new Error('Vui lòng nhập giá sản phẩm hợp lệ')
         }
 
-        const ramValue = parseInt(productData.ram)
-        const storageValue = parseInt(productData.storage)
+        const ramValue = toSafeNumber(productData.ram, 0, { integer: true })
+        const storageValue = toSafeNumber(productData.storage, 0, { integer: true })
 
         if (isNaN(ramValue) || ramValue <= 0) {
           throw new Error('RAM không hợp lệ')
@@ -357,13 +376,13 @@ export function ProductProvider({ children }) {
           cpu_name: productData.cpu || 'Intel Core i5',
           gpu: productData.graphics || 'Integrated',
           color_name: productData.version?.trim() || 'Default',
-          original_price: parseFloat(productData.oldPrice || productData.price),
-          stock_quantity: parseInt(productData.stock) || 0,
-          status: parseInt(productData.stock) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK'
+          original_price: toSafeNumber(productData.oldPrice || productData.price, 0),
+          stock_quantity: toSafeNumber(productData.stock, 0, { integer: true }),
+          status: toSafeNumber(productData.stock, 0, { integer: true }) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK'
         }
 
-        if (productData.oldPrice && parseFloat(productData.oldPrice) > parseFloat(productData.price)) {
-          variant.discount_price = parseFloat(productData.price)
+        if (productData.oldPrice && toSafeNumber(productData.oldPrice, 0) > toSafeNumber(productData.price, 0)) {
+          variant.discount_price = toSafeNumber(productData.price, 0)
         }
 
         variants = [variant]
@@ -376,11 +395,11 @@ export function ProductProvider({ children }) {
         device_type: productData.deviceType || 'LAPTOP',
         description_html: productData.description || '<p>Laptop chất lượng cao</p>',
         highlight_features: productData.features?.join(', ') || 'Hiệu năng mạnh mẽ',
-        screen_size: parseFloat(productData.screenSize) || undefined,
-        weight_kg: parseFloat(productData.weightKg) || undefined,
+        screen_size: extractNumericValue(productData.screenSize) ?? undefined,
+        weight_kg: extractNumericValue(productData.weightKg) ?? undefined,
         os: productData.os || 'Windows 11',
-        battery_capacity_mah: productData.batteryCapacityMah ? parseInt(productData.batteryCapacityMah, 10) : undefined,
-        refresh_rate_hz: productData.refreshRateHz ? parseInt(productData.refreshRateHz, 10) : undefined,
+        battery_capacity_mah: productData.batteryCapacityMah ? toSafeNumber(productData.batteryCapacityMah, 0, { integer: true }) : undefined,
+        refresh_rate_hz: productData.refreshRateHz ? toSafeNumber(productData.refreshRateHz, 0, { integer: true }) : undefined,
         charging_port: productData.chargingPort || undefined,
         connectivity: productData.connectivity || undefined,
         water_resistance: productData.waterResistance || undefined,
@@ -454,11 +473,11 @@ export function ProductProvider({ children }) {
         device_type: updates.device_type || updates.deviceType,
         description_html: updates.description_html ?? updates.description,
         highlight_features: updates.highlight_features ?? updates.highlightFeatures ?? updates.features?.join(', '),
-        screen_size: updates.screen_size ?? (updates.screenSize ? parseFloat(updates.screenSize) : undefined),
-        weight_kg: updates.weight_kg ?? (updates.weightKg ? parseFloat(updates.weightKg) : undefined),
+        screen_size: updates.screen_size ?? (updates.screenSize ? extractNumericValue(updates.screenSize) : undefined),
+        weight_kg: updates.weight_kg ?? (updates.weightKg ? extractNumericValue(updates.weightKg) : undefined),
         os: updates.os,
-        battery_capacity_mah: updates.battery_capacity_mah ?? (updates.batteryCapacityMah ? parseInt(updates.batteryCapacityMah, 10) : undefined),
-        refresh_rate_hz: updates.refresh_rate_hz ?? (updates.refreshRateHz ? parseInt(updates.refreshRateHz, 10) : undefined),
+        battery_capacity_mah: updates.battery_capacity_mah ?? (updates.batteryCapacityMah ? toSafeNumber(updates.batteryCapacityMah, 0, { integer: true }) : undefined),
+        refresh_rate_hz: updates.refresh_rate_hz ?? (updates.refreshRateHz ? toSafeNumber(updates.refreshRateHz, 0, { integer: true }) : undefined),
         charging_port: updates.charging_port ?? updates.chargingPort,
         connectivity: updates.connectivity,
         water_resistance: updates.water_resistance ?? updates.waterResistance,

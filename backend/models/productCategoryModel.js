@@ -1,7 +1,11 @@
 const db = require('../config/db');
 
+const VALID_DEVICE_TYPES = ['LAPTOP', 'PHONE', 'TABLET', 'WATCH', 'AUDIO', 'ACCESSORY', 'OTHER'];
+
+const normalizeDeviceType = (deviceType) => String(deviceType || '').trim().toUpperCase();
+
 const validateProductCategoryData = (data, isUpdate = false) => {
-    const { category_name, parent_category_id } = data;
+    const { category_name, parent_category_id, device_type } = data;
     const errors = [];
 
     if (!isUpdate) {
@@ -10,6 +14,15 @@ const validateProductCategoryData = (data, isUpdate = false) => {
 
     if (category_name !== undefined && !category_name.trim()) {
         errors.push('Tên danh mục sản phẩm không được để trống.');
+    }
+    if (!isUpdate && !String(device_type || '').trim()) {
+        errors.push('Loại thiết bị không được để trống.');
+    }
+    if (device_type !== undefined) {
+        const normalizedType = normalizeDeviceType(device_type);
+        if (!VALID_DEVICE_TYPES.includes(normalizedType)) {
+            errors.push(`Loại thiết bị không hợp lệ. Chỉ chấp nhận: ${VALID_DEVICE_TYPES.join(', ')}.`);
+        }
     }
     if (parent_category_id !== undefined && parent_category_id !== null && (isNaN(parseInt(parent_category_id)) || parseInt(parent_category_id) <= 0)) {
         errors.push('ID danh mục cha không hợp lệ.');
@@ -24,9 +37,18 @@ const ProductCategory = {
      * Có thể trả về dưới dạng phẳng hoặc có cấu trúc cây (tree structure).
      * @returns {Promise<Array>} Danh sách danh mục.
      */
-    getAll: async () => {
-        const query = 'SELECT category_id, category_name, parent_category_id FROM categories ORDER BY category_name ASC';
-        const [rows] = await db.query(query);
+    getAll: async (options = {}) => {
+        let query = 'SELECT category_id, category_name, parent_category_id, device_type FROM categories';
+        const values = [];
+
+        if (options.deviceType) {
+            query += ' WHERE UPPER(TRIM(device_type)) = ?';
+            values.push(normalizeDeviceType(options.deviceType));
+        }
+
+        query += ' ORDER BY category_name ASC';
+
+        const [rows] = await db.query(query, values);
         return rows;
     },
 
@@ -34,8 +56,16 @@ const ProductCategory = {
      * Lấy danh mục dưới dạng cây phân cấp.
      * @returns {Promise<Array>} Danh sách danh mục dưới dạng cây.
      */
-    getTree: async () => {
-        const [rows] = await db.query('SELECT category_id, category_name, parent_category_id FROM categories');
+    getTree: async (options = {}) => {
+        let query = 'SELECT category_id, category_name, parent_category_id, device_type FROM categories';
+        const values = [];
+
+        if (options.deviceType) {
+            query += ' WHERE UPPER(TRIM(device_type)) = ?';
+            values.push(normalizeDeviceType(options.deviceType));
+        }
+
+        const [rows] = await db.query(query, values);
 
         const categoriesMap = {};
         rows.forEach(cat => {
@@ -61,7 +91,7 @@ const ProductCategory = {
      * @returns {Promise<Object|null>} Đối tượng danh mục hoặc null nếu không tìm thấy.
      */
     getById: async (id) => {
-        const query = 'SELECT category_id, category_name, parent_category_id FROM categories WHERE category_id = ? LIMIT 1';
+        const query = 'SELECT category_id, category_name, parent_category_id, device_type FROM categories WHERE category_id = ? LIMIT 1';
         const [rows] = await db.query(query, [id]);
         return rows[0] || null;
     },
@@ -72,9 +102,13 @@ const ProductCategory = {
      * @returns {Promise<number>} ID của danh mục vừa được thêm.
      */
     create: async (categoryData) => {
-        const { category_name, parent_category_id } = categoryData;
-        const query = 'INSERT INTO categories (category_name, parent_category_id) VALUES (?, ?)';
-        const [result] = await db.query(query, [category_name, parent_category_id || null]);
+        const { category_name, parent_category_id, device_type } = categoryData;
+        const query = 'INSERT INTO categories (category_name, parent_category_id, device_type) VALUES (?, ?, ?)';
+        const [result] = await db.query(query, [
+            category_name,
+            parent_category_id || null,
+            normalizeDeviceType(device_type || 'LAPTOP'),
+        ]);
         return result.insertId;
     },
 
@@ -85,14 +119,14 @@ const ProductCategory = {
      * @returns {Promise<number>} Số dòng bị ảnh hưởng (0 hoặc 1).
      */
     update: async (id, updateData) => {
-        const allowedFields = ['category_name', 'parent_category_id'];
+        const allowedFields = ['category_name', 'parent_category_id', 'device_type'];
         const fieldsToUpdate = [];
         const values = [];
 
         allowedFields.forEach(field => {
             if (updateData[field] !== undefined) {
                 fieldsToUpdate.push(`${field} = ?`);
-                values.push(updateData[field]);
+                values.push(field === 'device_type' ? normalizeDeviceType(updateData[field]) : updateData[field]);
             }
         });
 
@@ -139,5 +173,7 @@ const ProductCategory = {
 
 module.exports = {
     ...ProductCategory,
-    validateProductCategoryData
+    validateProductCategoryData,
+    normalizeDeviceType,
+    VALID_DEVICE_TYPES,
 };
