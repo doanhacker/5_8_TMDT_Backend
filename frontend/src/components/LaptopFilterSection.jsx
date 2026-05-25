@@ -3,6 +3,11 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { buildApiUrl } from "../config/api"
 import { detectScopeByDeviceType, detectScopeByCategoryName } from "../utils/adminScope"
+import {
+  filterPaymentMockBrands,
+  filterPaymentMockProducts,
+  PAYMENT_MOCK_CATEGORY_NAME,
+} from "../utils/paymentMockCatalog"
 // const brands = [
 //   "MacBook",
 //   "ASUS",
@@ -56,9 +61,15 @@ export default function LaptopFilterSection({
         const brandsData = await brandsRes.json().catch(() => ({}))
         const categoriesData = await categoriesRes.json().catch(() => ({}))
 
-        const products = Array.isArray(productsData?.data) ? productsData.data : []
-        const allBrands = Array.isArray(brandsData?.data) ? brandsData.data : []
-        const allCategories = Array.isArray(categoriesData?.data) ? categoriesData.data : []
+        const products = filterPaymentMockProducts(
+          Array.isArray(productsData?.data) ? productsData.data : []
+        )
+        const allBrands = filterPaymentMockBrands(
+          Array.isArray(brandsData?.data) ? brandsData.data : []
+        )
+        const allCategories = (Array.isArray(categoriesData?.data) ? categoriesData.data : []).filter(
+          (item) => String(item?.category_name || "").trim() !== PAYMENT_MOCK_CATEGORY_NAME
+        )
 
         const laptopBrandNameSet = new Set(
           products.map((item) => normalizeText(item?.brand_name)).filter(Boolean)

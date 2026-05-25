@@ -1,0 +1,27 @@
+TEST CASE 46
+==================
+Chức năng    : Admin xem báo cáo thống kê
+Mô tả        : Khoảng thời gian không có dữ liệu
+
+Dữ liệu đầu vào:
+Loại báo cáo: Doanh thu
+Khoảng thời gian không phát sinh giao dịch
+
+Bước thực hiện (theo file testcase):
+1. Admin vào Xem báo cáo thống kê.
+2. Chọn khoảng thời gian không có giao dịch.
+3. Nhấn Xem báo cáo.
+
+Kết quả mong đợi:
+Hệ thống hiển thị Dashboard trống và thông báo “Không có dữ liệu”.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+Dashboard hiển thị theo dữ liệu orders — chọn khoảng ngày không có đơn trên UI (nếu có filter).
+
+Cách kiểm tra trên hệ thống:
+/admin → Dashboard → chọn ngày tương lai hoặc năm cũ không có giao dịch.
+
+Ghi chú:
+Cần kiểm tra filter ngày trên AdminDashboard.

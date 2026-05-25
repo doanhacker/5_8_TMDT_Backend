@@ -1,0 +1,400 @@
+================================================================================
+DANH SÁCH KẾT QUẢ TEST + CÁCH TEST TỪNG USE CASE (79 TC)
+Nguồn: TMĐT_nhóm8.xlsx | Hệ thống: TMDT Laptop E-commerce
+Cập nhật: 2026-05-24
+================================================================================
+
+■ CHUẨN BỊ TRƯỚC KHI TEST
+--------------------------------------------------------------------------------
+1. XAMPP: Start MySQL (Stop MySQL80 Windows nếu bị conflict)
+2. Backend:  cd backend  →  npm run dev     →  http://localhost:5000
+3. Frontend: cd frontend →  npm run dev     →  http://localhost:5173
+4. (Tuỳ chọn AI) cd backend/ai_service → .\start_ai_service.ps1 → port 8001
+
+Tài khoản đã dùng khi test API:
+  Khách:  khachhang01@example.com  /  P@ssword123
+  Admin:  admin@laptop-shop.com    /  admin123
+
+Chạy lại test API tự động:
+  node baocao/run_testcases.mjs
+
+Swagger API: http://localhost:5000/api-docs
+
+================================================================================
+■ TỔNG HỢP NHANH
+================================================================================
+  Pass    : 19  — Chạy được, khớp testcase
+  Partial : 30  — Có chức năng một phần / cần test thêm UI
+  Fail    : 21  — Chưa có hoặc không đạt
+  N/A     :  9  — Cần giả lập lỗi / sandbox / thao tác đặc biệt
+
+================================================================================
+■ PHẦN A — ĐÃ CHẠY ĐƯỢC (PASS) — 19 TC
+================================================================================
+
+TC01 | Đăng ký thành công
+  Kết quả: Pass — Tạo tài khoản khachhang01@example.com OK
+  Cách test UI:
+    1. Mở http://localhost:5173 → Đăng ký
+    2. Nhập: Nguyễn Văn A, email MỚI (chưa có), SĐT, mật khẩu ≥6 ký tự
+    3. Nhấn Đăng ký → thông báo thành công
+  Cách test API:
+    POST http://localhost:5000/api/auth/register
+    Body: {"email":"...","password":"...","full_name":"...","phone_number":"..."}
+
+TC02 | Đăng ký email đã tồn tại
+  Kết quả: Pass — HTTP 409 "Email đã được đăng ký"
+  Cách test: Đăng ký lại cùng email khachhang01@example.com
+
+TC03 | Đăng nhập thành công
+  Kết quả: Pass — Nhận JWT, vào trang chủ
+  Cách test UI: /dang-nhap → email + P@ssword123 → Đăng nhập
+  Cách test API:
+    POST /api/auth/login
+    Body: {"email":"khachhang01@example.com","password":"P@ssword123"}
+
+TC04 | Đăng nhập sai mật khẩu
+  Kết quả: Pass — HTTP 401 "Email hoặc mật khẩu không đúng"
+  Cách test: Đăng nhập với mật khẩu sai123
+
+TC05 | Hiển thị danh sách sản phẩm
+  Kết quả: Pass — 3 sản phẩm mock (Dell/Apple/Asus)
+  Cách test UI: Đăng nhập → menu Laptop / Danh mục → thấy danh sách SP
+  Cách test API: GET /api/products?page=1&limit=12
+
+TC07 | Tìm kiếm không có kết quả
+  Kết quả: Pass — Danh sách rỗng / thông báo không tìm thấy
+  Cách test UI: Ô tìm kiếm → gõ "xyznonexist999"
+  Cách test API: GET /api/products?search=xyznonexist999
+
+TC09 | Xem chi tiết sản phẩm tồn tại
+  Kết quả: Pass — SP #901 Dell XPS 15 Mock
+  Cách test UI: Click 1 sản phẩm → /san-pham/901 (hoặc link chi tiết)
+  Cách test API: GET /api/products/901
+
+TC10 | Chi tiết SP không tồn tại
+  Kết quả: Pass — HTTP 404
+  Cách test: Truy cập /san-pham/99999999 hoặc GET /api/products/99999999
+
+TC12 | Thêm SP còn hàng vào giỏ
+  Kết quả: Pass
+  Cách test UI: Trang chi tiết SP → "Thêm vào giỏ"
+  Cách test API:
+    POST /api/cart/add
+    Body: {"user_id":904,"variant_id":901,"quantity":1}
+    (user_id = ID sau khi login; lấy từ response login)
+
+TC13 | Sửa số lượng giỏ hàng
+  Kết quả: Pass
+  Cách test UI: /gio-hang → đổi số lượng → Cập nhật
+  Cách test API:
+    PUT /api/cart/update
+    Body: {"user_id":904,"variant_id":901,"quantity":2}
+
+TC14 | Xóa SP khỏi giỏ
+  Kết quả: Pass
+  Cách test UI: /gio-hang → Xóa sản phẩm
+  Cách test API: DELETE /api/cart/remove/901  Body: {"user_id":904}
+
+TC16 | Số lượng vượt tồn kho
+  Kết quả: Pass — Báo vượt tồn (variant 901 tồn=10)
+  Cách test API: PUT /api/cart/update quantity=99999
+
+TC17 | Đặt hàng thành công (COD)
+  Kết quả: Pass — Tạo đơn #909
+  Cách test UI:
+    1. Thêm SP vào giỏ → /gio-hang → Thanh toán
+    2. Chọn địa chỉ (hoặc thêm địa chỉ mới trong Profile)
+    3. Chọn COD → Xác nhận
+  Cách test API:
+    POST /api/profile/me/addresses  (tạo địa chỉ, cần Bearer token)
+    POST /api/orders
+    Body: {"user_id":904,"address_id":...,"order_type":"NORMAL",
+           "items":[{"variant_id":901,"quantity":1}]}
+
+TC21 | Thanh toán COD thành công
+  Kết quả: Pass — Gộp với TC17 (đơn tạo trạng thái chờ xác nhận)
+  Cách test: Giống TC17, chọn phương thức COD
+
+TC24 | Khách xem danh sách & chi tiết đơn
+  Kết quả: Pass
+  Cách test UI: Đăng nhập → Đơn hàng của tôi / Profile → Orders
+  Cách test API: GET /api/orders  (kèm query user nếu có)
+
+TC25 | Không tìm thấy đơn hàng
+  Kết quả: Pass — HTTP 404
+  Cách test API: GET /api/orders/99999999
+
+TC26 | Khách hủy đơn chưa giao
+  Kết quả: Pass — Hủy đơn #909 OK
+  Cách test UI: Chi tiết đơn trạng thái chờ → Hủy đơn
+  Cách test API: DELETE /api/orders/{orderId}/cancel
+
+TC37 | Nhân viên/Admin cập nhật trạng thái đơn
+  Kết quả: Pass — Đổi sang PROCESSING
+  Cách test UI: Đăng nhập admin → Admin → Quản lý đơn → đổi trạng thái
+  Cách test API:
+    PUT /api/orders/{id}/status
+    Header: Authorization Bearer {admin_token}
+    Body: {"status":"PROCESSING"}
+
+TC46 | Admin tìm & quản lý người dùng
+  Kết quả: Pass — GET customers 200
+  Cách test UI: Admin → Quản lý khách hàng → tìm email
+  Cách test API: GET /api/auth/admin/customers?search=test
+
+================================================================================
+■ PHẦN B — CHẠY MỘT PHẦN (PARTIAL) — 30 TC
+================================================================================
+
+TC06 | Tìm kiếm + lọc có kết quả
+  Kết quả: Partial — API search OK nhưng DB không có "laptop gaming"
+  Cách test UI: Trang laptop → tìm "Dell" hoặc lọc giá/RAM trên FE
+  Cách test API: GET /api/products?search=Dell
+
+TC11 | SP chưa có đánh giá
+  Kết quả: Partial
+  Cách test UI: Vào chi tiết SP mock → xem khu vực đánh giá (hiện trống/chưa có)
+
+TC19 | Thông tin giao hàng không hợp lệ
+  Kết quả: Partial/Fail thực tế — API vẫn tạo đơn khi address_id=null
+  Cách test UI: Thanh toán không chọn địa chỉ → quan sát có chặn không
+  Ghi chú báo cáo: Nên ghi Fail nếu testcase yêu cầu bắt buộc validate
+
+TC22 | Thanh toán online thành công
+  Kết quả: Partial — Có VNPay/MoMo, chưa test E2E sandbox
+  Cách test UI: Checkout → chọn VNPay/MoMo → làm theo sandbox VNPay
+  API: POST /api/payments/process
+
+TC28 | Chưa mua mà gửi đánh giá
+  Kết quả: Partial — Backend có rule, chưa test đủ
+  Cách test API: POST /api/reviews (token khách chưa mua SP đó)
+
+TC29 | Đánh giá thiếu sao/nội dung
+  Kết quả: Partial
+  Cách test: POST /api/reviews body thiếu rating
+
+TC30 | Chat AI — gửi câu hỏi nhận phản hồi
+  Kết quả: Partial — Lỗi nếu chưa chạy AI service
+  Cách test:
+    1. Chạy start_ai_service.ps1 (port 8001)
+    2. UI: icon chatbot góc phải → gõ "Laptop 20 triệu học IT"
+    3. API: POST /api/ai/chat  Body: {"message":"..."}
+
+TC33 | Gợi ý cho khách chưa đăng nhập
+  Kết quả: Partial — FE có block sản phẩm nổi bật, không phải engine riêng
+  Cách test: Mở trang chủ khi chưa login → xem "Sản phẩm nổi bật"
+
+TC41 | Nhân viên quản lý kho — đơn sẵn sàng giao
+  Kết quả: Partial
+  Cách test UI: Admin → Kho hàng / Inventory → xem đơn nhập, tồn thấp
+
+TC42 | Kho — địa chỉ giao không hợp lệ
+  Kết quả: Partial — Kiểm tra trên form admin đơn hàng
+
+TC43 | Admin thêm sản phẩm mới
+  Kết quả: Partial
+  Cách test UI: admin@laptop-shop.com → Admin → Sản phẩm → Thêm mới
+  API: POST /api/products (multipart, cần admin token)
+
+TC44 | Admin lưu SP thiếu thông tin
+  Kết quả: Partial — Để trống tên/giá → xem thông báo lỗi form
+
+TC45 | Admin thêm SP trùng mã/SKU
+  Kết quả: Partial — Nhập SKU đã có → Lưu
+
+TC47 | Admin không tìm thấy user
+  Kết quả: Partial — API trả 200 list rỗng (cần xem UI có báo không)
+  Cách test: Tìm email zzznotfound999
+
+TC48 | Admin tự khóa tài khoản mình
+  Kết quả: Partial — Chưa xác minh đủ trên UI
+
+TC49 | Admin ghi đè trạng thái đơn
+  Kết quả: Partial — Có PUT status, test trên Admin Orders
+
+TC51 | Admin duyệt/ẩn/xóa nội dung
+  Kết quả: Partial
+  Cách test: Admin → Reviews → xóa 1 review
+  API: DELETE /api/auth/admin/reviews/{id}
+
+TC55 | Dashboard + xuất báo cáo
+  Kết quả: Partial — Dashboard có, chưa thấy xuất Excel/PDF
+  Cách test: Admin → Dashboard / Thống kê
+
+TC56 | Báo cáo khoảng thời gian không có dữ liệu
+  Kết quả: Partial — Chọn khoảng ngày không có đơn
+
+TC57–60 | Cổng thanh toán & IPN
+  Kết quả: Partial
+  Cách test:
+    - Dùng đơn seed mock #901–908 (user test_user1@mock.com — password mock không login được)
+    - Hoặc tạo đơn mới → VNPay sandbox
+    - IPN: POST /api/payments/vnpay/ipn (cần chữ ký VNPay)
+
+TC67–73 | Trợ lý AI tư vấn (các kịch bản)
+  Kết quả: Partial — Cần AI service + catalog SP
+  Cách test: Chatbot với các câu trong Excel (20tr, ngân sách 5tr, SP hết hàng…)
+
+================================================================================
+■ PHẦN C — CHƯA CHẠY ĐƯỢC / FAIL — 21 TC
+================================================================================
+
+TC18 | Đặt trước sản phẩm (PRE_ORDER)
+  Lý do: API có order_type PRE_ORDER, FE không có nút "Đặt trước"
+  Cách test khi sửa code: POST /api/orders order_type:"PRE_ORDER"
+
+TC27 | Gửi đánh giá sau khi mua
+  Lý do: Thiếu form đánh giá trên trang chi tiết SP
+  API có: POST /api/reviews
+
+TC31 | AI không hiểu → chuyển nhân viên
+  Lý do: Không có luồng chuyển staff chat
+
+TC32 | Gợi ý SP theo hành vi (cá nhân hoá)
+  Lý do: Không có Recommendation Engine API riêng
+
+TC34–36 | Nhân viên chat hỗ trợ khách
+  Lý do: Bảng chat_rooms có trong DB nhưng chưa có UI/API staff chat
+
+TC39–40 | Nhân viên tạo vận đơn
+  Lý do: Không tích hợp API GHN/GHTK/J&T
+
+TC53–54 | Admin cấu hình AI & tham số gợi ý
+  Lý do: Không có màn hình cấu hình thật
+
+TC63–66 | Đơn vị vận chuyển & cập nhật trạng thái giao
+  Lý do: Không có webhook/API đối tác vận chuyển
+
+TC74–79 | Hệ thống gợi ý (Recommendation Engine)
+  Lý do: Chưa triển khai engine độc lập (chỉ có AI chat Python phụ)
+
+================================================================================
+■ PHẦN D — CẦN TEST THỦ CÔNG ĐẶC BIỆT (N/A) — 9 TC
+================================================================================
+
+TC08  | Lỗi tải dữ liệu SP
+  Cách test: Tắt backend → F5 trang sản phẩm → xem thông báo lỗi FE
+
+TC15  | Thêm SP hết hàng vào giỏ
+  Cách test: Trong phpMyAdmin set variant status=OUT_OF_STOCK, stock=0
+            → Thử thêm vào giỏ trên UI
+
+TC20  | Đặt hàng khi tồn kho không đủ
+  Cách test: Thêm giỏ SL=5, giảm stock DB xuống 1 → đặt hàng
+
+TC23  | Thanh toán online thất bại
+  Cách test: VNPay sandbox — hủy giao dịch / thẻ test fail
+
+TC38  | Lỗi khi cập nhật trạng thái đơn (staff)
+  Cách test: Tắt MySQL giữa lúc admin bấm Lưu trạng thái
+
+TC50  | Lỗi đồng bộ admin ghi đè đơn
+  Cách test: Giả lập lỗi DB khi PUT /api/orders/{id}/status
+
+TC52  | Admin duyệt nội dung — mất mạng
+  Cách test: DevTools → Offline khi bấm Duyệt
+
+TC61–62 | IPN thất bại / lỗi cập nhật đơn sau thanh toán
+  Cách test: Gửi IPN giả với chữ ký sai hoặc order_id không tồn tại
+
+================================================================================
+■ BẢNG TRA CỨU NHANH (STT | TRẠNG THÁI | CHẠY ĐƯỢC?)
+================================================================================
+
+STT | Trạng thái | Chạy được? | Ghi chú ngắn
+----|-----------|------------|----------------------------------
+  1 | Pass      | Có         | Đăng ký email mới
+  2 | Pass      | Có         | Email trùng → 409
+  3 | Pass      | Có         | Login khachhang01
+  4 | Pass      | Có         | Sai mật khẩu → 401
+  5 | Pass      | Có         | List 3 SP mock
+  6 | Partial   | Một phần   | Lọc/tìm — thiếu data gaming
+  7 | Pass      | Có         | Tìm không ra
+  8 | N/A       | Manual     | Tắt server
+  9 | Pass      | Có         | Chi tiết SP
+ 10 | Pass      | Có         | SP 404
+ 11 | Partial   | Một phần   | UI review trống
+ 12 | Pass      | Có         | Thêm giỏ
+ 13 | Pass      | Có         | Sửa SL giỏ
+ 14 | Pass      | Có         | Xóa giỏ
+ 15 | N/A       | Manual     | Cần SP hết hàng trong DB
+ 16 | Pass      | Có         | SL > tồn
+ 17 | Pass      | Có         | Đặt hàng COD
+ 18 | Fail      | Không      | Thiếu UI đặt trước
+ 19 | Partial   | Không đủ  | API không chặn thiếu địa chỉ
+ 20 | N/A       | Manual     | Giảm stock trước khi đặt
+ 21 | Pass      | Có         | COD (=TC17)
+ 22 | Partial   | Một phần   | VNPay sandbox
+ 23 | N/A       | Manual     | Hủy thanh toán online
+ 24 | Pass      | Có         | Xem đơn
+ 25 | Pass      | Có         | Đơn 404
+ 26 | Pass      | Có         | Hủy đơn
+ 27 | Fail      | Không      | Thiếu form review
+ 28 | Partial   | Một phần   | API review có rule
+ 29 | Partial   | Một phần   | Validate review
+ 30 | Partial   | Một phần   | Cần AI :8001
+ 31 | Fail      | Không      | Không chuyển staff
+ 32 | Fail      | Không      | Không engine gợi ý
+ 33 | Partial   | Một phần   | SP nổi bật FE
+ 34 | Fail      | Không      | Staff chat
+ 35 | Fail      | Không      | Staff chat
+ 36 | Fail      | Không      | Staff chat
+ 37 | Pass      | Có         | Admin đổi trạng thái
+ 38 | N/A       | Manual     | Lỗi server
+ 39 | Fail      | Không      | API vận chuyển
+ 40 | Fail      | Không      | API vận chuyển
+ 41 | Partial   | Một phần   | Admin inventory
+ 42 | Partial   | Một phần   | Validate kho
+ 43 | Partial   | Một phần   | Admin thêm SP
+ 44 | Partial   | Một phần   | Validate form SP
+ 45 | Partial   | Một phần   | Trùng SKU
+ 46 | Pass      | Có         | Admin tìm KH
+ 47 | Partial   | Một phần   | Không thấy user
+ 48 | Partial   | Một phần   | Tự khóa admin
+ 49 | Partial   | Một phần   | Ghi đè đơn
+ 50 | N/A       | Manual     | Lỗi DB
+ 51 | Partial   | Một phần   | Xóa review admin
+ 52 | N/A       | Manual     | Offline khi duyệt
+ 53 | Fail      | Không      | Cấu hình AI admin
+ 54 | Fail      | Không      | Validate cấu hình AI
+ 55 | Partial   | Một phần   | Dashboard, chưa export
+ 56 | Partial   | Một phần   | Báo cáo rỗng
+ 57 | Partial   | Một phần   | VNPay/IPN
+ 58 | Partial   | Một phần   | VNPay fail sandbox
+ 59 | Partial   | Một phần   | Timeout gateway
+ 60 | Partial   | Một phần   | IPN success route có
+ 61 | N/A       | Manual     | IPN fail
+ 62 | N/A       | Manual     | IPN OK nhưng lỗi update đơn
+ 63 | Fail      | Không      | ĐVVC tiếp nhận
+ 64 | Fail      | Không      | Vận đơn sai
+ 65 | Fail      | Không      | Cập nhật trạng thái giao
+ 66 | Fail      | Không      | Lỗi cập nhật giao
+ 67 | Partial   | Một phần   | AI tư vấn (cần :8001)
+ 68 | Partial   | Một phần   | AI hỏi thêm tiêu chí
+ 69 | Partial   | Một phần   | AI không đủ ngân sách
+ 70 | Partial   | Một phần   | AI SP hết hàng
+ 71 | Partial   | Một phần   | AI gợi ý thay thế
+ 72 | Partial   | Một phần   | AI đặt trước model
+ 73 | Partial   | Một phần   | AI không SP thay thế
+ 74 | Fail      | Không      | Recommendation engine
+ 75 | Fail      | Không      | Gợi ý chưa login (engine)
+ 76 | Fail      | Không      | Gợi ý ít hành vi
+ 77 | Fail      | Không      | Gợi ý thay thế hết hàng
+ 78 | Fail      | Không      | Ưu tiên bản mới hơn
+ 79 | Fail      | Không      | Không SP thay thế
+
+================================================================================
+■ ĐƯỜNG DẪN UI THAM KHẢO (Frontend)
+================================================================================
+  Đăng ký / Đăng nhập     →  /dang-ky  |  /dang-nhap
+  Danh sách laptop        →  /laptop hoặc menu tương ứng
+  Chi tiết SP             →  /san-pham/{productId}
+  Giỏ hàng                →  /gio-hang
+  Đơn hàng                →  Profile / Orders (sau login)
+  Admin                   →  /admin (login admin@laptop-shop.com)
+  Chatbot AI              →  Icon góc phải màn hình
+
+================================================================================
+Hết file — copy cột "Kết quả thực tế" + "Pass/Fail" sang TMĐT_nhóm8.xlsx
+================================================================================

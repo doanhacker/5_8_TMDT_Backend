@@ -1,0 +1,30 @@
+TEST CASE 33
+==================
+Chức năng    : Nhân viên quản lý đơn hàng
+Mô tả        : Cập nhật trạng thái đơn hàng thành công
+
+Dữ liệu đầu vào:
+Đơn hàng trạng thái: Chờ xác nhận
+Nhân viên có quyền quản lý đơn hàng
+
+Bước thực hiện (theo file testcase):
+1. Nhân viên mở chức năng Quản lý đơn hàng.
+2. Chọn đơn cần xử lý.
+3. Xác nhận thông tin.
+4. Đổi trạng thái sang Đang xử lý/Đang giao.
+
+Kết quả mong đợi:
+Hệ thống cập nhật trạng thái đơn hàng và thông báo cho khách hàng.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Pass
+Kết quả thực tế:
+PUT /api/orders/920/status → PROCESSING: Trạng thái đơn hàng ID 920 đã được cập nhật thành "PROCESSING" thành công!
+
+Cách kiểm tra trên hệ thống:
+1. Login admin → http://localhost:5173/admin
+2. Tab Đơn hàng → chọn đơn #920
+3. Đổi trạng thái Đang xử lý → Lưu
+
+Ghi chú:
+Mock đơn #920 PENDING_CONFIRMATION (seed_mock_tc30_46.sql).

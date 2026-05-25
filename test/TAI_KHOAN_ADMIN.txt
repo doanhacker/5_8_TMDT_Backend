@@ -1,0 +1,22 @@
+TÀI KHOẢN ADMIN — ĐĂNG NHẬP
+============================
+
+QUAN TRỌNG — 2 Ô KHÁC NHAU:
+  Ô "Email hoặc số điện thoại" → nhập EMAIL (ví dụ admin.test@laptop-shop.com)
+  Ô "Mật khẩu"                  → nhập MẬT KHẨU (ví dụ Admin@123)
+
+  KHÔNG nhập mật khẩu vào ô Email!
+
+--- Tài khoản khuyên dùng ---
+Email    : admin.test@laptop-shop.com
+Mật khẩu : Admin@123
+
+--- Tài khoản cũ trên màn hình demo ---
+Email    : admin@laptopshop.vn
+Mật khẩu : Admin@123456
+
+--- Tài khoản seed ---
+Email    : admin@laptop-shop.com
+Mật khẩu : Admin@123
+
+Tạo lại trong DB: node test/create-admin.js

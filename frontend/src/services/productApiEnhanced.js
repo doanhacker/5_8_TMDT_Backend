@@ -1,5 +1,9 @@
 import { buildApiUrl } from '../config/api'
 import { getAuthToken } from '../lib/authToken'
+import {
+  filterPaymentMockProducts,
+  isPaymentMockCatalogItem,
+} from '../utils/paymentMockCatalog'
 
 const API_BASE = buildApiUrl('/api/products')
 
@@ -57,6 +61,9 @@ export const getAllProducts = async (params = {}) => {
     }
 
     const data = await response.json()
+    if (Array.isArray(data?.data)) {
+      return { ...data, data: filterPaymentMockProducts(data.data) }
+    }
     return data
   } catch (error) {
     console.error('Error fetching products:', error)
@@ -84,6 +91,9 @@ export const getProductById = async (id) => {
     }
 
     const data = await response.json()
+    if (isPaymentMockCatalogItem(data?.data)) {
+      throw new Error('Không tìm thấy sản phẩm')
+    }
     return data
   } catch (error) {
     console.error(`Error fetching product ${id}:`, error)

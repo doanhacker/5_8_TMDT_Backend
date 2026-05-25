@@ -1,0 +1,26 @@
+TEST CASE 39
+==================
+Chức năng    : Admin quản lý người dùng
+Mô tả        : Không tìm thấy người dùng
+
+Dữ liệu đầu vào:
+Từ khóa: email/tên không tồn tại
+
+Bước thực hiện (theo file testcase):
+1. Admin truy cập Quản lý người dùng.
+2. Nhập từ khóa không có trong hệ thống.
+3. Nhấn Tìm kiếm.
+
+Kết quả mong đợi:
+Hệ thống hiển thị thông báo không có kết quả phù hợp.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Pass
+Kết quả thực tế:
+Tìm zzznotfound999: 0 kết quả (UI lọc client-side trên danh sách đầy đủ).
+
+Cách kiểm tra trên hệ thống:
+/admin → Khách hàng → ô tìm zzznotfound999 → không có dòng / thông báo trống.
+
+Ghi chú:
+API trả toàn bộ list; FE filter.

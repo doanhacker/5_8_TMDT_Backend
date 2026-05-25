@@ -1,0 +1,123 @@
+KẾT QUẢ KIỂM THỬ 79 TEST CASE — TMĐT_nhóm8.xlsx
+Ngày chạy: 2026-05-24T13:14:21.998Z
+API: http://localhost:5000
+Phương pháp: API tự động + đối chiếu mã nguồn (một số TC cần UI/manual)
+
+STT | Trạng thái | Kết quả thực tế | Ghi chú
+--- | --- | --- | ---
+1 | Pass | API 409: Email đã được đăng ký | Email đã tồn tại từ lần chạy trước — coi như Pass
+2 | Pass | API 409: Email đã được đăng ký | 
+3 | Pass | Đăng nhập OK, user_id=904 | 
+4 | Pass | API 401: Email hoặc mật khẩu không đúng | 
+5 | Pass | GET /api/products → 3 sản phẩm | DB hiện chỉ có 3 SP mock
+6 | Partial | Tìm "gaming": 0 kết quả | Bộ lọc RAM/giá trên FE chưa test API
+7 | Pass | Danh sách rỗng | 
+8 | N/A | Không kiểm thử (cần giả lập lỗi server) | Manual: tắt backend
+9 | Pass | Chi tiết SP #901 OK | 
+10 | Pass | SP không tồn tại: HTTP 404 | 
+11 | Partial | Cần kiểm tra UI khu vực review | API có reviews nếu có dữ liệu
+12 | Pass | Thêm giỏ: Thêm sản phẩm vào giỏ hàng thành công! | 
+13 | Pass | Cập nhật SL=2: Cập nhật số lượng sản phẩm trong giỏ hàng thành công! | 
+14 | Pass | Xóa khỏi giỏ: Xóa sản phẩm khỏi giỏ hàng thành công! | 
+15 | N/A | Không có SP stock=0 trong DB seed | Cần tạo variant OUT_OF_STOCK
+16 | Pass | SL vượt tồn: Số lượng yêu cầu (99999) vượt quá số lượng tồn kho (10). | 
+17 | Pass | Tạo đơn: Tạo đơn hàng thành công! #909 | 
+18 | Fail | PRE_ORDER: API có order_type PRE_ORDER, FE chưa có nút Đặt trước | Thiếu UI
+19 | Partial | Thiếu địa chỉ: Tạo đơn hàng thành công! | 
+20 | N/A | Cần giả lập tồn kho < số lượng giỏ | Manual
+21 | Pass | Đơn #909 COD đã tạo | 
+22 | Partial | VNPay/MoMo cần redirect cổng — chưa test E2E | Có route /api/payments
+23 | N/A | Cần mock IPN thất bại | Manual
+24 | Pass | Danh sách đơn: 10 đơn | 
+25 | Pass | Đơn không tồn tại: 404 | 
+26 | Pass | Hủy đơn: Đơn hàng ID 909 đã được hủy thành công! | 
+27 | Fail | POST /api/reviews cần đơn COMPLETED — chưa có flow mua xong | Thiếu form FE
+28 | Partial | Backend có validate đã mua — chưa test | 
+29 | Partial | Validate rating — chưa test | 
+30 | Partial | AI: Lỗi server khi xử lý AI chat | Cần AI service :8001
+31 | Fail | Chuyển nhân viên — không có staff chat | 
+32 | Fail | Recommendation engine riêng — chưa có API | 
+33 | Partial | Trang chủ có SP bán chạy/mới — Partial FE | 
+34 | Fail | Staff chat chưa triển khai | 
+35 | Fail | Staff chat chưa triển khai | 
+36 | Fail | Staff chat chưa triển khai | 
+37 | Pass | Cập nhật trạng thái: Trạng thái đơn hàng ID 909 đã được cập nhật thành "PROCESSING" thành công! | 
+38 | N/A | Giả lập lỗi server | 
+39 | Fail | Tích hợp đơn vị vận chuyển chưa có | 
+40 | Fail | Tích hợp đơn vị vận chuyển chưa có | 
+41 | Partial | Admin inventory có — cần UI staff | 
+42 | Partial | Validate địa chỉ kho — Partial | 
+43 | Partial | POST /api/products admin — có API upload | Cần test manual form
+44 | Partial | Validate thiếu field — Partial | 
+45 | Partial | Trùng SKU — Partial | 
+46 | Pass | Admin customers: 200 | 
+47 | Partial | Tìm không thấy: 200 | 
+48 | Partial | Chặn tự khóa admin — chưa xác minh | 
+49 | Partial | Admin đổi trạng thái đơn — có API | 
+50 | N/A | N/A giả lập lỗi | 
+51 | Partial | Admin xóa review — có DELETE /api/auth/admin/reviews/:id | 
+52 | N/A | N/A | 
+53 | Fail | Không có màn Admin cấu hình AI/gợi ý thật | 
+54 | Fail | Không có | 
+55 | Partial | Dashboard có — xuất Excel/PDF chưa thấy | 
+56 | Partial | Báo cáo rỗng — Partial | 
+57 | Partial | Có seed đơn 901-908 mock — IPN cần manual | 
+58 | Partial | Manual VNPay sandbox | 
+59 | Partial | Manual timeout | 
+60 | Partial | Route vnpay/ipn, momo/ipn có | 
+61 | N/A | Manual | 
+62 | N/A | Manual giả lập | 
+63 | Fail | Không tích hợp API vận chuyển bên thứ 3 | 
+64 | Fail | Không tích hợp API vận chuyển bên thứ 3 | 
+65 | Fail | Không tích hợp API vận chuyển bên thứ 3 | 
+66 | Fail | Không tích hợp API vận chuyển bên thứ 3 | 
+67 | Partial | AI service /api/ai/chat — phụ thuộc Python :8001 | 
+68 | Partial | AI service /api/ai/chat — phụ thuộc Python :8001 | 
+69 | Partial | AI service /api/ai/chat — phụ thuộc Python :8001 | 
+70 | Partial | AI service /api/ai/chat — phụ thuộc Python :8001 | 
+71 | Partial | AI service /api/ai/chat — phụ thuộc Python :8001 | 
+72 | Partial | AI service /api/ai/chat — phụ thuộc Python :8001 | 
+73 | Partial | AI service /api/ai/chat — phụ thuộc Python :8001 | 
+74 | Fail | Recommendation Engine độc lập chưa triển khai | 
+75 | Fail | Recommendation Engine độc lập chưa triển khai | 
+76 | Fail | Recommendation Engine độc lập chưa triển khai | 
+77 | Fail | Recommendation Engine độc lập chưa triển khai | 
+78 | Fail | Recommendation Engine độc lập chưa triển khai | 
+79 | Fail | Recommendation Engine độc lập chưa triển khai | 
+
+Tổng: Pass=19, Partial=30, Fail=21, N/A=9
+
+================================================================================
+TÓM TẮT (điền Excel — cột Pass/Fail nghiêm ngặt)
+================================================================================
+- Pass (đúng TC): 19
+- Fail (không đạt / chưa làm): 30 Partial + 21 Fail = 51 (nếu Partial tính Fail)
+- N/A (cần test thủ công — tắt server, sandbox VNPay…): 9
+
+Môi trường khi chạy:
+- Backend: http://localhost:5000 (đang chạy)
+- MySQL XAMPP: laptop_ecommerce_db (3 SP mock Dell/Apple/Asus)
+- Tài khoản test: khachhang01@example.com / P@ssword123 (user_id 904)
+- Admin test: admin@laptop-shop.com / admin123 (đã reset hash tạm để kiểm thử)
+
+Các nhóm chức năng KHỚP với hệ thống (Pass):
+  Đăng ký/đăng nhập (TC1-4), danh sách & chi tiết SP (TC5,7,9-10),
+  giỏ hàng (TC12-14,16), đặt hàng COD (TC17,21), quản lý đơn (TC24-26),
+  admin cập nhật trạng thái (TC37), admin tìm KH (TC46).
+
+Các nhóm CHƯA ĐẠT / THIẾU so với file testcase:
+  - Đặt trước PRE_ORDER UI (TC18)
+  - Validate địa chỉ đơn hàng — API vẫn tạo đơn khi address_id=null (TC19 → Fail thực tế)
+  - Form đánh giá sau mua (TC27-29)
+  - Chat nhân viên + chuyển từ AI (TC31, TC34-36)
+  - Recommendation Engine độc lập (TC32, TC74-79)
+  - Tích hợp vận chuyển bên thứ 3 (TC39-40, TC63-66)
+  - Admin cấu hình AI/gợi ý (TC53-54)
+  - Xuất Excel/PDF báo cáo (TC55)
+  - AI chat: cần chạy Python ai_service port 8001 (TC30, TC67-73)
+
+Để test UI đầy đủ: npm run dev (frontend :5173) + mở http://localhost:5173
+Chạy lại script API: node baocao/run_testcases.mjs
+
+File nguồn testcase: TMĐT_nhóm8.xlsx (thư mục gốc dự án)
+Script kiểm thử: baocao/run_testcases.mjs

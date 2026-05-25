@@ -1,0 +1,27 @@
+TEST CASE 31
+==================
+Chức năng    : Hỗ trợ khách hàng qua chat
+Mô tả        : Khách hàng không hài lòng với câu trả lời
+
+Dữ liệu đầu vào:
+Cuộc chat đang diễn ra
+Khách hàng phản hồi không hài lòng
+
+Bước thực hiện (theo file testcase):
+1. Nhân viên trả lời câu hỏi.
+2. Khách hàng phản hồi không hài lòng.
+3. Nhân viên xử lý theo quy trình.
+
+Kết quả mong đợi:
+Nhân viên xin lỗi, đề nghị khách hàng liên hệ lại sau hoặc tiếp tục hỗ trợ phù hợp.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Fail
+Kết quả thực tế:
+Không có luồng chat nhân viên để xử lý phản hồi không hài lòng.
+
+Cách kiểm tra trên hệ thống:
+Manual: cần triển khai staff chat trước khi test.
+
+Ghi chú:
+Phụ thuộc TC30.

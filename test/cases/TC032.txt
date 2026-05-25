@@ -1,0 +1,26 @@
+TEST CASE 32
+==================
+Chức năng    : Hỗ trợ khách hàng qua chat
+Mô tả        : Nhân viên không đủ thông tin để giải đáp
+
+Dữ liệu đầu vào:
+Yêu cầu khách hàng thiếu dữ liệu hoặc cần bộ phận chuyên môn
+
+Bước thực hiện (theo file testcase):
+1. Nhân viên tiếp nhận yêu cầu.
+2. Xác định không đủ thông tin để xử lý.
+3. Yêu cầu khách cung cấp thêm thông tin hoặc chuyển bộ phận khác.
+
+Kết quả mong đợi:
+Hệ thống/nhân viên ghi nhận yêu cầu bổ sung thông tin hoặc chuyển yêu cầu đến bộ phận phù hợp.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Fail
+Kết quả thực tế:
+Không có chức năng nhân viên yêu cầu thêm thông tin / chuyển bộ phận.
+
+Cách kiểm tra trên hệ thống:
+Manual khi có staff portal.
+
+Ghi chú:
+Phụ thuộc TC30.
