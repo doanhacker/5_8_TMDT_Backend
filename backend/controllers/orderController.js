@@ -5,6 +5,7 @@ const UserAddress = require('../models/userAddressModel');
 const db = require('../config/db');
 const Voucher = require('../models/voucherModel'); // Cần VoucherModel để kiểm tra voucher_id
 const notificationService = require('../services/notificationService');
+const { logAnalyticsEvent } = require('../services/analyticsEventService');
 
 const { parseQueryParams, getOffset, buildPaginationResult } = require('../helpers/queryHelper');
 const { isValidId } = require('../helpers/productValidationHelper'); // Dùng chung isValidId
@@ -84,6 +85,13 @@ const orderController = {
             const newOrderId = await Order.createOrder(orderDataForModel, items);
 
             await notificationService.notifyByTemplate(user_id, 'ORDER_CREATED', { orderId: newOrderId });
+
+            logAnalyticsEvent({
+                eventType: 'order_complete',
+                userId: Number(user_id),
+                sessionId: req.headers['x-session-id'] || null,
+                metadata: { order_id: newOrderId, item_count: items.length },
+            });
 
             res.status(201).json({
                 success: true,

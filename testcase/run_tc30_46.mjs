@@ -1,6 +1,6 @@
 /**
  * Chạy test API TC30-46 từ Testcase.xlsx
- * node test/run_tc30_46.mjs
+ * node testcase/run_tc30_46.mjs
  */
 import fs from 'fs';
 import path from 'path';
@@ -327,9 +327,9 @@ async function main() {
     '  Khách   : khachhang01@example.com / P@ssword123',
     '',
     'Mock data: chạy trước',
-    '  D:\\xampp\\mysql\\bin\\mysql.exe -u root laptop_ecommerce_db < test/seed_mock_tc30_46.sql',
+    '  Get-Content testcase\\seed_mock_tc30_46.sql -Raw | D:\\xampp\\mysql\\bin\\mysql.exe -u root laptop_ecommerce_db',
     '',
-    'Chi tiết từng TC: thư mục test/cases/TC030.txt ... TC046.txt',
+    'Chi tiết từng TC: thư mục testcase/cases/TC030.txt ... TC046.txt',
     '',
     '='.repeat(90),
     '',

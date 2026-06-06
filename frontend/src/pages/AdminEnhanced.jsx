@@ -8,8 +8,9 @@ import * as productApi from "../services/productApi"
 import * as orderApi from "../services/orderApi"
 import * as inventoryApi from "../services/inventoryApi"
 import * as adminApi from "../services/adminApi"
+import * as analyticsApi from "../services/analyticsApi"
 import { buildApiUrl, getImageUrl } from "../config/api"
-import { getAuthToken } from "../lib/authToken"
+import { getAuthToken, notifyUnauthorized } from "../lib/authToken"
 import {
   FiBarChart2,
   FiBox,
@@ -79,6 +80,22 @@ const initialStaff = [
   { id: "S001", name: "Admin Tổng", role: "admin", email: "admin@laptopshop.vn" },
   { id: "S002", name: "Nhân viên hệ thống", role: "staff", email: "staff@laptopshop.vn" },
 ]
+
+const emptyAnalyticsOverview = {
+  revenue_today: 0,
+  revenue_month: 0,
+  revenue_year: 0,
+  orders_pending: 0,
+  orders_completed: 0,
+  orders_cancelled: 0,
+  cancel_rate: 0,
+  avg_order_value: 0,
+  total_customers: 0,
+  new_customers_month: 0,
+  low_stock_count: 0,
+  out_of_stock_count: 0,
+  avg_rating: 0,
+}
 
 const createEmptyProductForm = () => ({
   name: "",
@@ -218,18 +235,28 @@ export default function Admin() {
   const [categories, setCategories] = useState([])
   const [loadingBrands, setLoadingBrands] = useState(false)
   const [loadingCategories, setLoadingCategories] = useState(false)
+  const [analyticsOverview, setAnalyticsOverview] = useState(emptyAnalyticsOverview)
+  const [revenueHistory, setRevenueHistory] = useState([])
+  const [topProducts, setTopProducts] = useState([])
+  const [cancelReasons, setCancelReasons] = useState([])
+  const [revenuePeriod, setRevenuePeriod] = useState("monthly")
+  const [topProductsDays, setTopProductsDays] = useState(30)
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState("")
 
   // Fetch staff users từ API khi vào module "staff"
   useEffect(() => {
+    if (!user || !isAdmin()) return
     if (activeModule === "staff") {
       fetchStaffUsers()
     }
-  }, [activeModule])
+  }, [activeModule, user])
 
-  // Fetch brands and categories when component mounts
+  // Fetch brands and categories when admin session is ready
   useEffect(() => {
+    if (!user || !isAdmin()) return
     fetchBrandsAndCategories()
-  }, [])
+  }, [user])
 
   useEffect(() => {
     if (!productNotice) return undefined
@@ -321,6 +348,8 @@ export default function Admin() {
           setStaffUsers(data.data)
           console.log("✅ Đã tải danh sách nhân viên:", data.data)
         }
+      } else if (response.status === 401) {
+        notifyUnauthorized()
       } else {
         console.error("Lỗi:", response.statusText)
         // Giữ dữ liệu initial nếu lỗi
@@ -420,6 +449,7 @@ export default function Admin() {
   }
 
   useEffect(() => {
+    if (!user || !isAdmin()) return
     if (activeModule === "orders" || activeModule === "dashboard") {
       loadOrders()
     }
@@ -432,7 +462,45 @@ export default function Admin() {
     if (activeModule === "content" || activeModule === "dashboard") {
       loadComments()
     }
-  }, [activeModule])
+  }, [activeModule, user])
+
+  useEffect(() => {
+    if (!user || !isAdmin()) return
+    if (activeModule !== "dashboard") return undefined
+
+    let cancelled = false
+
+    const loadAnalytics = async () => {
+      setAnalyticsLoading(true)
+      setAnalyticsError("")
+      try {
+        const [overviewRes, revenueRes, topRes, cancelRes] = await Promise.all([
+          analyticsApi.getAnalyticsOverview(),
+          analyticsApi.getAnalyticsRevenue({ period: revenuePeriod }),
+          analyticsApi.getAnalyticsTopProducts({ limit: 10, days: topProductsDays }),
+          analyticsApi.getAnalyticsCancelReasons(),
+        ])
+
+        if (cancelled) return
+
+        setAnalyticsOverview(overviewRes?.data || emptyAnalyticsOverview)
+        setRevenueHistory(Array.isArray(revenueRes?.data) ? revenueRes.data : [])
+        setTopProducts(Array.isArray(topRes?.data) ? topRes.data : [])
+        setCancelReasons(Array.isArray(cancelRes?.data) ? cancelRes.data : [])
+      } catch (error) {
+        if (cancelled) return
+        console.error("Error loading analytics:", error)
+        setAnalyticsError(error.message || "Không thể tải dữ liệu thống kê")
+      } finally {
+        if (!cancelled) setAnalyticsLoading(false)
+      }
+    }
+
+    loadAnalytics()
+    return () => {
+      cancelled = true
+    }
+  }, [activeModule, user, revenuePeriod, topProductsDays])
 
   const lowStockItems = useMemo(() => inventory, [inventory])
 
@@ -450,24 +518,21 @@ export default function Admin() {
     )
   }, [products, searchTerm, isScopedAdmin, adminScope])
 
-  const revenueSummary = useMemo(() => {
-    const completed = orders.filter((order) => order.status === "COMPLETED")
-    const processing = orders.filter((order) => order.status !== "CANCELLED")
-    return {
-      day: 125000000,
-      month: 2480000000,
-      year: 19800000000,
-      brandAsus: 62,
-      priceSegmentMid: 47,
-      avgOrder: processing.length ? processing.reduce((sum, order) => sum + order.total, 0) / processing.length : 0,
-      cancelRate: orders.length ? Math.round((orders.filter((order) => order.status === "CANCELLED").length / orders.length) * 100) : 0,
-      returnRate: 36,
-      completedOrders: completed.length,
-      preOrders: orders.filter((order) => order.preOrder).length,
-      preOrderCancelRate: 20,
-      waitingAverageDays: 4,
-    }
-  }, [orders])
+  const revenueSummary = useMemo(() => ({
+    day: analyticsOverview.revenue_today,
+    month: analyticsOverview.revenue_month,
+    year: analyticsOverview.revenue_year,
+    avgOrder: analyticsOverview.avg_order_value,
+    cancelRate: analyticsOverview.cancel_rate,
+    completedOrders: analyticsOverview.orders_completed,
+    ordersPending: analyticsOverview.orders_pending,
+    newCustomersMonth: analyticsOverview.new_customers_month,
+    totalCustomers: analyticsOverview.total_customers,
+    lowStockCount: analyticsOverview.low_stock_count,
+    outOfStockCount: analyticsOverview.out_of_stock_count,
+    avgRating: analyticsOverview.avg_rating,
+    preOrders: orders.filter((order) => order.preOrder).length,
+  }), [analyticsOverview, orders])
 
   const recommendationStats = {
     topSuggested: ["ASUS TUF Gaming F16", "ASUS Vivobook 16X", "ASUS ROG Strix G16"],
@@ -1058,6 +1123,15 @@ export default function Admin() {
     if (activeModule === "dashboard") return (
       <AdminDashboard
         revenueSummary={revenueSummary}
+        revenueHistory={revenueHistory}
+        topProducts={topProducts}
+        cancelReasons={cancelReasons}
+        revenuePeriod={revenuePeriod}
+        onRevenuePeriodChange={setRevenuePeriod}
+        topProductsDays={topProductsDays}
+        onTopProductsDaysChange={setTopProductsDays}
+        analyticsLoading={analyticsLoading}
+        analyticsError={analyticsError}
         orders={orders}
         products={products}
         customers={customers}

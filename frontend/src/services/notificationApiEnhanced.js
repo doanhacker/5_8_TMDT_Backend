@@ -1,5 +1,5 @@
 import { buildApiUrl } from '../config/api'
-import { getAuthToken } from '../lib/authToken'
+import { getAuthToken, notifyUnauthorized } from '../lib/authToken'
 
 const API_BASE = buildApiUrl('/api/notifications')
 
@@ -22,6 +22,10 @@ const requestJson = async (url, options = {}) => {
   })
 
   const data = await response.json().catch(() => ({}))
+  if (response.status === 401) {
+    notifyUnauthorized()
+    throw new Error(data.message || 'Token không hợp lệ hoặc đã hết hạn')
+  }
   if (!response.ok) {
     throw new Error(data.message || data.error || `HTTP ${response.status}`)
   }

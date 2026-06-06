@@ -1,6 +1,6 @@
 /**
  * Kiểm thử API tự động cho 79 testcase TMĐT_nhóm8.xlsx
- * Chạy: node baocao/run_testcases.mjs
+ * Chạy: node testcase/run_testcases.mjs
  */
 const BASE = process.env.API_BASE || 'http://localhost:5000';
 const TEST_EMAIL = 'khachhang01@example.com';

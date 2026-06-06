@@ -1,6 +1,6 @@
 /**
  * Tạo hoặc cập nhật tài khoản Admin để test trang /admin
- * Chạy: node test/create-admin.js
+ * Chạy: node testcase/create-admin.js
  */
 const path = require('path');
 const backendDir = path.join(__dirname, '../backend');

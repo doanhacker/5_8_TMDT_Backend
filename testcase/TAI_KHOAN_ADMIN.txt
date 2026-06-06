@@ -19,4 +19,4 @@ Mật khẩu : Admin@123456
 Email    : admin@laptop-shop.com
 Mật khẩu : Admin@123
 
-Tạo lại trong DB: node test/create-admin.js
+Tạo lại trong DB: node testcase/create-admin.js

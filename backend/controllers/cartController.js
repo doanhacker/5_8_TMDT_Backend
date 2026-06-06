@@ -1,6 +1,7 @@
 const Cart = require('../models/cartModel');
 const Product = require('../models/productModel');
 const db = require('../config/db');
+const { logAnalyticsEvent } = require('../services/analyticsEventService');
 
 const { validateCartItemData, isValidCartId } = require('../helpers/cartValidationHelper');
 const { isValidId } = require('../helpers/productValidationHelper'); // Dùng chung isValidId cho variant_id
@@ -88,6 +89,19 @@ const cartController = {
 
 
             const result = await Cart.addItem(cartId, variant_id, quantity);
+
+            const [variantProductRows] = await db.query(
+                'SELECT product_id FROM product_variants WHERE variant_id = ? LIMIT 1',
+                [variant_id]
+            );
+
+            logAnalyticsEvent({
+                eventType: 'cart_add',
+                userId: req.body.user_id ? Number(req.body.user_id) : null,
+                productId: variantProductRows[0]?.product_id || null,
+                sessionId: req.body.session_id || req.headers['x-session-id'] || null,
+                metadata: { variant_id: Number(variant_id), quantity: Number(quantity) },
+            });
 
             res.status(200).json({
                 success: true,

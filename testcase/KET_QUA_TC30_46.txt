@@ -26,5 +26,5 @@ STT | Trạng thái | Mô tả (rút gọn)                         | Kết qu�
 
 TỔNG: Pass=8 | Fail=9 | Kiểm tra lại=0
 
-Chi tiết test "Kiểm tra lại" đã chạy: test/KET_QUA_KIEM_TRA_LAI.txt
-Script: node test/run_kiem_tra_lai.mjs
+Chi tiết test "Kiểm tra lại" đã chạy: testcase/KET_QUA_KIEM_TRA_LAI.txt
+Script: node testcase/run_kiem_tra_lai.mjs

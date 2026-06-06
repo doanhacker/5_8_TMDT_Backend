@@ -3,6 +3,7 @@ const Brand = require('../models/brandModel');
 const ProductCategory = require('../models/productCategoryModel');
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const { logAnalyticsEvent } = require('../services/analyticsEventService');
 const uploadProduct = require('../middlewares/uploadProductImageMiddleware');
 const { parseQueryParams, getOffset, buildPaginationResult } = require('../helpers/queryHelper');
 const {
@@ -162,6 +163,13 @@ const productController = {
             if (!product) {
                 return res.status(404).json({ success: false, message: 'Sản phẩm không tồn tại!' });
             }
+
+            logAnalyticsEvent({
+                eventType: 'product_view',
+                userId: requestingUserId,
+                productId: Number(productId),
+                sessionId: req.headers['x-session-id'] || null,
+            });
 
             res.status(200).json({
                 success: true,

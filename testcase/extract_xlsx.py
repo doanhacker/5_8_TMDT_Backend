@@ -5,8 +5,8 @@ import json
 import sys
 from pathlib import Path
 
-path = Path(sys.argv[1] if len(sys.argv) > 1 else 'Testcase.xlsx')
-out = Path(sys.argv[2] if len(sys.argv) > 2 else 'test/testcase_source.json')
+path = Path(sys.argv[1] if len(sys.argv) > 1 else 'testcase/Testcase.xlsx')
+out = Path(sys.argv[2] if len(sys.argv) > 2 else 'testcase/testcase_source.json')
 
 z = zipfile.ZipFile(path)
 ss = []

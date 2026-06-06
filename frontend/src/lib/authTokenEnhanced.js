@@ -43,3 +43,13 @@ export const clearAuthToken = () => {
     document.cookie = `${TOKEN_COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
   }
 }
+
+let unauthorizedHandler = null
+
+export const setUnauthorizedHandler = (handler) => {
+  unauthorizedHandler = typeof handler === "function" ? handler : null
+}
+
+export const notifyUnauthorized = () => {
+  unauthorizedHandler?.()
+}
