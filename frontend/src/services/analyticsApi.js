@@ -49,3 +49,13 @@ export const getAnalyticsTopProducts = async (params = {}) => {
 }
 
 export const getAnalyticsCancelReasons = async () => requestJson('/cancel-reasons', { method: 'GET' })
+
+export const getAnalyticsReport = async (params = {}) => {
+  const query = new URLSearchParams()
+  if (params.report_type) query.append('report_type', params.report_type)
+  if (params.range) query.append('range', params.range)
+  if (params.date_from) query.append('date_from', params.date_from)
+  if (params.date_to) query.append('date_to', params.date_to)
+  const queryString = query.toString()
+  return requestJson(`/report${queryString ? `?${queryString}` : ''}`, { method: 'GET' })
+}

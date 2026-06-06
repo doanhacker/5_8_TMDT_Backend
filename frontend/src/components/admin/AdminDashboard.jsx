@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+import ProductRevenueSection from "./ProductRevenueChart"
 
 const toCurrency = (value) => `${Number(value || 0).toLocaleString("vi-VN")}đ`
 
@@ -67,10 +68,20 @@ export default function AdminDashboard({
   revenueHistory = [],
   topProducts = [],
   cancelReasons = [],
-  revenuePeriod = "monthly",
-  onRevenuePeriodChange,
-  topProductsDays = 30,
-  onTopProductsDaysChange,
+  reportType = "revenue",
+  onReportTypeChange,
+  reportRange = "current_month",
+  onReportRangeChange,
+  reportDateFrom = "",
+  onReportDateFromChange,
+  reportDateTo = "",
+  onReportDateToChange,
+  onExportExcel,
+  onExportPdf,
+  reportHasData = false,
+  reportPeriodLabel = "",
+  reportPayload = null,
+  exportNotice = "",
   analyticsLoading = false,
   analyticsError = "",
   orders = [],
@@ -161,16 +172,27 @@ export default function AdminDashboard({
     [revenueHistory]
   )
 
-  const revenuePeriodTabs = [
-    { id: "monthly", label: "Theo tháng" },
-    { id: "weekly", label: "Theo tuần" },
+  const chartHasRevenue = chartData.some((item) => Number(item.revenue || 0) > 0)
+
+  const reportRangeOptions = [
+    { value: "current_month", label: "Tháng hiện tại" },
+    { value: "last_7_days", label: "7 ngày gần nhất" },
+    { value: "last_30_days", label: "30 ngày gần nhất" },
+    { value: "last_90_days", label: "90 ngày gần nhất" },
+    { value: "custom", label: "Tùy chọn ngày" },
   ]
 
-  const topProductDayOptions = [
-    { value: 7, label: "7 ngày" },
-    { value: 30, label: "30 ngày" },
-    { value: 90, label: "90 ngày" },
+  const reportTypeOptions = [
+    { value: "revenue", label: "Doanh thu" },
   ]
+
+  const periodRevenue = Number(
+    reportPayload?.overview?.total_revenue
+    ?? reportPayload?.overview?.revenue_month
+    ?? 0
+  )
+  const periodCompletedOrders = Number(reportPayload?.overview?.orders_completed ?? 0)
+  const periodAvgOrder = Number(reportPayload?.overview?.avg_order_value ?? 0)
 
   const formatMetric = (value, formatter = (item) => item) => {
     if (analyticsLoading) return "--"
@@ -264,8 +286,8 @@ export default function AdminDashboard({
             <span>Doanh thu tháng</span>
             <strong>{formatMetric(revenueSummary?.month, toCurrency)}</strong>
             <small>
-              {formatMetric(revenueSummary?.completedOrders, (v) => `${v} đơn hoàn thành`)}
-              {analyticsLoading ? "" : `, AOV ${toCurrency(Math.round(revenueSummary?.avgOrder || 0))}`}
+              Hôm nay {formatMetric(revenueSummary?.day, toCurrency)}
+              {analyticsLoading ? "" : ` · Năm ${formatMetric(revenueSummary?.year, toCurrency)}`}
             </small>
           </article>
           <article className="adm-executive-card">
@@ -293,30 +315,124 @@ export default function AdminDashboard({
         {analyticsError ? <p className="adm-form-error">{analyticsError}</p> : null}
       </section>
 
+      <section className="adm-card adm-card-pad">
+        <div className="adm-card-title">
+          <div>
+            <h3>Doanh thu chi tiết theo kỳ</h3>
+            <p className="adm-muted">Chọn loại báo cáo và khoảng thời gian — biểu đồ và bảng top sản phẩm cập nhật tự động.</p>
+          </div>
+        </div>
+
+        <div className="adm-form-compact">
+          <div className="adm-form-row">
+            <label htmlFor="report-type">Loại báo cáo</label>
+            <select
+              id="report-type"
+              value={reportType}
+              onChange={(event) => onReportTypeChange?.(event.target.value)}
+            >
+              {reportTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="adm-form-row">
+            <label htmlFor="report-range">Khoảng thời gian</label>
+            <select
+              id="report-range"
+              value={reportRange}
+              onChange={(event) => onReportRangeChange?.(event.target.value)}
+            >
+              {reportRangeOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {reportRange === "custom" ? (
+            <>
+              <div className="adm-form-row">
+                <label htmlFor="report-from">Từ ngày</label>
+                <input
+                  id="report-from"
+                  type="date"
+                  value={reportDateFrom}
+                  onChange={(event) => onReportDateFromChange?.(event.target.value)}
+                />
+              </div>
+              <div className="adm-form-row">
+                <label htmlFor="report-to">Đến ngày</label>
+                <input
+                  id="report-to"
+                  type="date"
+                  value={reportDateTo}
+                  onChange={(event) => onReportDateToChange?.(event.target.value)}
+                />
+              </div>
+            </>
+          ) : null}
+
+          <div className="adm-form-actions">
+            <button
+              type="button"
+              className="adm-btn adm-btn-light"
+              disabled={!reportHasData || analyticsLoading}
+              onClick={() => onExportExcel?.()}
+            >
+              Xuất Excel
+            </button>
+            <button
+              type="button"
+              className="adm-btn adm-btn-light"
+              disabled={!reportHasData || analyticsLoading}
+              onClick={() => onExportPdf?.()}
+            >
+              Xuất PDF
+            </button>
+          </div>
+        </div>
+
+        {exportNotice ? <p className="adm-muted" style={{ color: "#166534", marginTop: 12 }}>{exportNotice}</p> : null}
+        {reportRange === "custom" && (!reportDateFrom || !reportDateTo) ? (
+          <p className="adm-muted" style={{ marginTop: 12 }}>
+            Chọn đầy đủ từ ngày và đến ngày để xem doanh thu chi tiết.
+          </p>
+        ) : null}
+
+        <div className="adm-experience-metrics" style={{ marginTop: 16 }}>
+          <div className="adm-metric-box">
+            <span>Tổng doanh thu kỳ</span>
+            <strong>{analyticsLoading ? "--" : toCurrency(periodRevenue)}</strong>
+            <small>{reportPeriodLabel || "Đang tải..."}</small>
+          </div>
+          <div className="adm-metric-box">
+            <span>Đơn hoàn thành</span>
+            <strong>{analyticsLoading ? "--" : periodCompletedOrders.toLocaleString("vi-VN")}</strong>
+            <small>Trong kỳ đã chọn</small>
+          </div>
+          <div className="adm-metric-box">
+            <span>Giá trị đơn TB</span>
+            <strong>{analyticsLoading ? "--" : toCurrency(Math.round(periodAvgOrder))}</strong>
+            <small>AOV kỳ báo cáo</small>
+          </div>
+        </div>
+      </section>
+
       <section className="adm-grid">
         <section className="adm-card adm-card-pad adm-chart-card">
           <div className="adm-card-title">
             <div>
               <h3>Biểu đồ doanh thu</h3>
-              <p className="adm-muted">6 chu kỳ gần nhất từ đơn hàng hoàn thành.</p>
-            </div>
-            <div className="adm-chart-tabs">
-              {revenuePeriodTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`adm-chart-tab ${revenuePeriod === tab.id ? "is-active" : ""}`}
-                  onClick={() => onRevenuePeriodChange?.(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
+              <p className="adm-muted">
+                {reportPeriodLabel ? `Kỳ: ${reportPeriodLabel}` : "Doanh thu theo ngày trong kỳ báo cáo."}
+              </p>
             </div>
           </div>
           <div className="adm-chart-wrap">
             {analyticsLoading ? (
               <p className="adm-muted">Đang tải biểu đồ...</p>
-            ) : chartData.length ? (
+            ) : chartHasRevenue ? (
               <ResponsiveContainer width="100%" height={320}>
                 <LineChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e7dac0" />
@@ -334,7 +450,7 @@ export default function AdminDashboard({
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <p className="adm-muted">Chưa có dữ liệu doanh thu để hiển thị.</p>
+              <p className="adm-muted">Không có dữ liệu</p>
             )}
           </div>
         </section>
@@ -343,17 +459,8 @@ export default function AdminDashboard({
           <div className="adm-card-title">
             <div>
               <h3>Top sản phẩm bán chạy</h3>
-              <p className="adm-muted">Theo số lượng đã bán trong khoảng thời gian đã chọn.</p>
+              <p className="adm-muted">Trong kỳ báo cáo đã chọn.</p>
             </div>
-            <select
-              className="adm-select adm-chart-filter"
-              value={topProductsDays}
-              onChange={(event) => onTopProductsDaysChange?.(Number(event.target.value))}
-            >
-              {topProductDayOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
           </div>
           <div className="adm-table-wrap">
             <table className="adm-table adm-top-products-table">
@@ -387,7 +494,7 @@ export default function AdminDashboard({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="adm-muted">Chưa có sản phẩm bán chạy trong khoảng thời gian này.</td>
+                    <td colSpan={5} className="adm-muted">Không có dữ liệu</td>
                   </tr>
                 )}
               </tbody>
@@ -395,6 +502,8 @@ export default function AdminDashboard({
           </div>
         </section>
       </section>
+
+      <ProductRevenueSection products={products} />
 
       {cancelReasons.length ? (
         <section className="adm-card adm-card-pad">

@@ -9,6 +9,10 @@ import * as orderApi from "../services/orderApi"
 import * as inventoryApi from "../services/inventoryApi"
 import * as adminApi from "../services/adminApi"
 import * as analyticsApi from "../services/analyticsApi"
+import {
+  exportAnalyticsReportExcel,
+  exportAnalyticsReportPdf,
+} from "../utils/analyticsReportExport"
 import { buildApiUrl, getImageUrl } from "../config/api"
 import { getAuthToken, notifyUnauthorized } from "../lib/authToken"
 import {
@@ -239,10 +243,16 @@ export default function Admin() {
   const [revenueHistory, setRevenueHistory] = useState([])
   const [topProducts, setTopProducts] = useState([])
   const [cancelReasons, setCancelReasons] = useState([])
-  const [revenuePeriod, setRevenuePeriod] = useState("monthly")
-  const [topProductsDays, setTopProductsDays] = useState(30)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [analyticsError, setAnalyticsError] = useState("")
+  const [reportType, setReportType] = useState("revenue")
+  const [reportRange, setReportRange] = useState("current_month")
+  const [reportDateFrom, setReportDateFrom] = useState("")
+  const [reportDateTo, setReportDateTo] = useState("")
+  const [reportHasData, setReportHasData] = useState(false)
+  const [reportPeriodLabel, setReportPeriodLabel] = useState("")
+  const [reportPayload, setReportPayload] = useState(null)
+  const [exportNotice, setExportNotice] = useState("")
 
   // Fetch staff users từ API khi vào module "staff"
   useEffect(() => {
@@ -465,42 +475,87 @@ export default function Admin() {
   }, [activeModule, user])
 
   useEffect(() => {
-    if (!user || !isAdmin()) return
+    if (!user || !isAdmin()) return undefined
     if (activeModule !== "dashboard") return undefined
 
+    const canLoadReport = reportRange !== "custom" || (reportDateFrom && reportDateTo)
     let cancelled = false
 
-    const loadAnalytics = async () => {
+    const loadDashboardAnalytics = async () => {
       setAnalyticsLoading(true)
       setAnalyticsError("")
+      setExportNotice("")
+
       try {
-        const [overviewRes, revenueRes, topRes, cancelRes] = await Promise.all([
-          analyticsApi.getAnalyticsOverview(),
-          analyticsApi.getAnalyticsRevenue({ period: revenuePeriod }),
-          analyticsApi.getAnalyticsTopProducts({ limit: 10, days: topProductsDays }),
-          analyticsApi.getAnalyticsCancelReasons(),
+        const overviewPromise = analyticsApi.getAnalyticsOverview()
+        const cancelPromise = analyticsApi.getAnalyticsCancelReasons()
+        const reportPromise = canLoadReport
+          ? analyticsApi.getAnalyticsReport({
+              report_type: reportType,
+              range: reportRange,
+              ...(reportRange === "custom"
+                ? { date_from: reportDateFrom, date_to: reportDateTo }
+                : {}),
+            })
+          : null
+
+        const [overviewRes, cancelRes, reportRes] = await Promise.all([
+          overviewPromise,
+          cancelPromise,
+          reportPromise,
         ])
 
         if (cancelled) return
 
         setAnalyticsOverview(overviewRes?.data || emptyAnalyticsOverview)
-        setRevenueHistory(Array.isArray(revenueRes?.data) ? revenueRes.data : [])
-        setTopProducts(Array.isArray(topRes?.data) ? topRes.data : [])
         setCancelReasons(Array.isArray(cancelRes?.data) ? cancelRes.data : [])
+
+        if (reportRes?.data) {
+          const payload = reportRes.data
+          setReportPayload(payload)
+          setReportHasData(Boolean(payload?.has_data))
+          setReportPeriodLabel(payload?.period?.label || "")
+          setRevenueHistory(Array.isArray(payload?.chart_data) ? payload.chart_data : [])
+          setTopProducts(Array.isArray(payload?.top_products) ? payload.top_products : [])
+        } else if (reportRange === "custom" && (!reportDateFrom || !reportDateTo)) {
+          setReportPayload(null)
+          setReportHasData(false)
+          setReportPeriodLabel("")
+          setRevenueHistory([])
+          setTopProducts([])
+        }
       } catch (error) {
         if (cancelled) return
-        console.error("Error loading analytics:", error)
-        setAnalyticsError(error.message || "Không thể tải dữ liệu thống kê")
+        console.error("Error loading dashboard analytics:", error)
+        setAnalyticsError(error.message || "Không thể tải báo cáo thống kê")
       } finally {
         if (!cancelled) setAnalyticsLoading(false)
       }
     }
 
-    loadAnalytics()
+    loadDashboardAnalytics()
     return () => {
       cancelled = true
     }
-  }, [activeModule, user, revenuePeriod, topProductsDays])
+  }, [activeModule, user, reportType, reportRange, reportDateFrom, reportDateTo])
+
+  const handleExportExcel = () => {
+    try {
+      exportAnalyticsReportExcel(reportPayload)
+      setExportNotice("Đã xuất báo cáo Excel (.csv) thành công.")
+    } catch (error) {
+      setExportNotice(error.message || "Không thể xuất Excel.")
+    }
+  }
+
+  const handleExportPdf = () => {
+    try {
+      exportAnalyticsReportPdf(reportPayload)
+      setExportNotice("Đã mở hộp thoại in PDF. Chọn 'Lưu thành PDF' để tải file.")
+    } catch (error) {
+      setExportNotice(error.message || "Không thể xuất PDF.")
+    }
+  }
 
   const lowStockItems = useMemo(() => inventory, [inventory])
 
@@ -1126,10 +1181,20 @@ export default function Admin() {
         revenueHistory={revenueHistory}
         topProducts={topProducts}
         cancelReasons={cancelReasons}
-        revenuePeriod={revenuePeriod}
-        onRevenuePeriodChange={setRevenuePeriod}
-        topProductsDays={topProductsDays}
-        onTopProductsDaysChange={setTopProductsDays}
+        reportType={reportType}
+        onReportTypeChange={setReportType}
+        reportRange={reportRange}
+        onReportRangeChange={setReportRange}
+        reportDateFrom={reportDateFrom}
+        onReportDateFromChange={setReportDateFrom}
+        reportDateTo={reportDateTo}
+        onReportDateToChange={setReportDateTo}
+        onExportExcel={handleExportExcel}
+        onExportPdf={handleExportPdf}
+        reportHasData={reportHasData}
+        reportPeriodLabel={reportPeriodLabel}
+        reportPayload={reportPayload}
+        exportNotice={exportNotice}
         analyticsLoading={analyticsLoading}
         analyticsError={analyticsError}
         orders={orders}

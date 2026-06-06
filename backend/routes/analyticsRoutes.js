@@ -9,5 +9,7 @@ router.get('/revenue', analyticsController.getRevenue);
 router.get('/top-products', analyticsController.getTopProducts);
 router.get('/overview', analyticsController.getOverview);
 router.get('/cancel-reasons', analyticsController.getCancelReasons);
+router.get('/product-revenue-by-day', analyticsController.getProductRevenueByDay);
+router.get('/report', analyticsController.getReport);
 
 module.exports = router;
