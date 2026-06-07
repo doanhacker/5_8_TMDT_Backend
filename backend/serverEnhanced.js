@@ -28,6 +28,7 @@ const aiRoutes = require('./routes/aiRoutes');
 const communityQaRoutes = require('./routes/communityQaRoutes');
 const serviceUtilityRoutes = require('./routes/serviceUtilityRoutes');
 const usedTradeInRoutes = require('./routes/usedTradeInRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
 const corsOrigin = process.env.FRONTEND_ORIGIN
@@ -64,6 +65,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/community-qa', communityQaRoutes);
 app.use('/api/service-utilities', serviceUtilityRoutes);
 app.use('/api/used-trade-in', usedTradeInRoutes);
+app.use('/api/admin/analytics', analyticsRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use((err, req, res, next) => {

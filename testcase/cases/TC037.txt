@@ -1,0 +1,26 @@
+TEST CASE 37
+==================
+Chức năng    : Admin quản lý sản phẩm
+Mô tả        : Thêm sản phẩm trùng mã
+
+Dữ liệu đầu vào:
+Mã SP: LAP001 đã tồn tại
+
+Bước thực hiện (theo file testcase):
+1. Admin chọn Thêm mới sản phẩm.
+2. Nhập mã sản phẩm đã tồn tại.
+3. Nhấn Lưu.
+
+Kết quả mong đợi:
+Hệ thống thông báo sản phẩm đã tồn tại và không cho phép lưu.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+HTTP 401: Thiếu token xác thực
+
+Cách kiểm tra trên hệ thống:
+Admin → Thêm SP → nhập SKU trùng variant hiện có → Lưu.
+
+Ghi chú:
+Variant 901 đã có SKU trong DB mock.

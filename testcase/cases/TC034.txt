@@ -1,0 +1,29 @@
+TEST CASE 34
+==================
+Chức năng    : Nhân viên quản lý đơn hàng
+Mô tả        : Lỗi khi cập nhật trạng thái đơn hàng
+
+Dữ liệu đầu vào:
+Đơn hàng hợp lệ
+Giả lập lỗi hệ thống khi lưu trạng thái
+
+Bước thực hiện (theo file testcase):
+1. Nhân viên chọn đơn hàng.
+2. Thay đổi trạng thái.
+3. Nhấn Lưu khi hệ thống xảy ra lỗi.
+
+Kết quả mong đợi:
+Hệ thống báo lỗi, trạng thái đơn hàng không bị cập nhật sai và yêu cầu nhân viên thử lại.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): N/A
+Kết quả thực tế:
+Chưa test tự động — cần tắt MySQL/backend khi admin bấm Lưu.
+
+Cách kiểm tra trên hệ thống:
+1. Admin mở đơn hàng.
+2. Stop MySQL trong XAMPP.
+3. Đổi trạng thái → Lưu → phải báo lỗi.
+
+Ghi chú:
+Test thủ công.

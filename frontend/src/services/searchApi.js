@@ -1,4 +1,5 @@
 import { buildApiUrl } from "../config/api";
+import { filterPaymentMockProducts } from "../utils/paymentMockCatalog";
 
 export async function getSearchSuggestions(keyword, limit = 5) {
   const q = String(keyword || "").trim();
@@ -17,5 +18,9 @@ export async function getSearchSuggestions(keyword, limit = 5) {
     throw new Error(data?.message || "Không lấy được gợi ý tìm kiếm");
   }
 
-  return data?.data || { categories: [], products: [] };
+  const payload = data?.data || { categories: [], products: [] };
+  return {
+    ...payload,
+    products: filterPaymentMockProducts(payload.products),
+  };
 }

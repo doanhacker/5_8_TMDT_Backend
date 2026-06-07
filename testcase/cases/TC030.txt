@@ -1,0 +1,29 @@
+TEST CASE 30
+==================
+Chức năng    : Hỗ trợ khách hàng qua chat
+Mô tả        : Nhân viên tiếp nhận và trả lời yêu cầu khách hàng
+
+Dữ liệu đầu vào:
+Khách hàng gửi yêu cầu hỗ trợ
+Nhân viên đang online
+
+Bước thực hiện (theo file testcase):
+1. Khách hàng gửi yêu cầu qua chat.
+2. Nhân viên tiếp nhận cuộc trò chuyện.
+3. Nhân viên tư vấn và kết thúc cuộc trò chuyện.
+
+Kết quả mong đợi:
+Khách hàng nhận được câu trả lời, thông tin hỗ trợ được lưu lại nếu cần.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Fail
+Kết quả thực tế:
+Không có API/UI chat nhân viên (staff). Chỉ có chatbot AI (/api/ai/chat) và bảng chat_rooms trong DB chưa có route.
+
+Cách kiểm tra trên hệ thống:
+1. Đăng nhập khách → tìm mục chat nhân viên (không có).
+2. DB: SELECT * FROM chat_rooms (có mock room 920 sau seed).
+3. So sánh với testcase yêu cầu nhân viên tiếp nhận trên UI.
+
+Ghi chú:
+Đã seed chat_rooms #920 + tin nhắn mock trong test/seed_mock_tc30_46.sql nhưng chưa có màn staff.

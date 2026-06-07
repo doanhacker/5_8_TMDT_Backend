@@ -1,0 +1,339 @@
+================================================================================
+  BÁO CÁO: CÁC USE CASE CẦN SỬA / BỔ SUNG / ĐIỀU CHỈNH
+  Dự án: Hệ thống TMĐT bán thiết bị công nghệ (TMDT)
+  Đối chiếu: TMĐT-Final.docx  ↔  Code thực tế (frontend + backend)
+  Ngày lập: 20/05/2026
+================================================================================
+
+Mục đích file:
+- Liệt kê use case trong báo cáo chưa khớp hệ thống (THIẾU / MỘT PHẦN).
+- Liệt kê chức năng hệ thống có nhưng báo cáo chưa ghi (THỪA trong tài liệu).
+- Gợi ý hướng sửa báo cáo HOẶC sửa code để đồng bộ.
+- Không yêu cầu sửa file SQL testcase (Dell Mock, Apple Mock, Asus Mock giữ nguyên).
+
+================================================================================
+PHẦN 1. TÓM TẮT ĐIỀU HÀNH
+================================================================================
+
+Tổng quan:
+  - Báo cáo mô tả hệ thống RỘNG HƠN phần đã triển khai.
+  - Nhiều actor phụ (Recommendation Engine, Shipping Carrier) và chức năng Staff
+    chat chưa có module tương ứng.
+  - Code có nhiều module hoàn chỉnh (blog, voucher, Facebook, thông báo...) chưa
+    nằm trong bảng use case tổng quát.
+
+Khuyến nghị chung cho nhóm:
+  (A) Sửa báo cáo cho khớp thực tế demo — nhanh, phù hợp bảo vệ đồ án.
+  (B) Hoặc bổ sung code theo báo cáo — tốn thời gian hơn.
+
+Ưu tiên sửa báo cáo (mức cao):
+  1. Thu hẹp / đánh dấu "chưa triển khai" các UC không có code.
+  2. Bổ sung UC đã có thật vào bảng tổng quát.
+  3. Tách actor "Hệ thống gợi ý" thành mô tả thực tế (Featured + AI chat).
+  4. Sửa mô tả Staff: dùng chung Admin Portal, không app riêng.
+
+================================================================================
+PHẦN 2. USE CASE CẦN SỬA TRONG BÁO CÁO (THIẾU SO VỚI CODE THỰC TẾ)
+================================================================================
+Ghi chú trạng thái code: [CHƯA CÓ] | [MỘT PHẦN] | [CÓ]
+
+--------------------------------------------------------------------------------
+2.1. KHÁCH HÀNG
+--------------------------------------------------------------------------------
+
+UC: Đặt hàng / đặt trước
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Backend hỗ trợ order_type = PRE_ORDER, trạng thái WAITING_FOR_STOCK.
+    - Frontend checkout luôn gửi order_type = NORMAL, preOrder = false.
+  Cần sửa báo cáo:
+    - Ghi rõ: "Đặt trước: thiết kế DB/API có, giao diện khách chưa triển khai."
+    - Hoặc thu hẹp UC chỉ còn "Đặt hàng thường".
+  Cần sửa code (nếu muốn khớp báo cáo):
+    - Thêm tùy chọn "Đặt trước" trên Cart khi variant hết hàng.
+
+UC: Đánh giá sản phẩm
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - API POST/PUT /api/reviews có.
+    - Frontend chỉ XEM review, không có form gửi đánh giá.
+  Cần sửa báo cáo:
+    - Luồng gửi đánh giá: đánh dấu "API có, UI chưa" hoặc bỏ bước gửi trong sơ đồ.
+  Cần sửa code:
+    - Form đánh giá + upload ảnh trên ProductDetail.
+
+UC: Chat hỗ trợ (nhân viên hoặc AI)
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Chỉ có Chatbot AI (POST /api/ai/chat).
+    - Bảng chat_rooms, chat_messages trong DB không có API/UI.
+  Cần sửa báo cáo:
+    - Đổi tên UC thành "Chat trợ lý AI" hoặc tách 2 UC: AI (có) / Staff (chưa).
+    - Xóa actor Staff khỏi luồng chat khách hàng.
+
+UC: Xem gợi ý sản phẩm
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Không có Recommendation Engine, không dùng user_behaviors.
+    - FeaturedProducts = 5 sản phẩm đầu từ API; AI chat trả recommendations.
+  Cần sửa báo cáo:
+    - Không mô tả collaborative filtering / content-based như đã có.
+    - Ghi: "Gợi ý nổi bật + gợi ý trong chat AI".
+
+UC: Hỏi đáp sản phẩm (trong mô tả actor Khách hàng)
+  Trạng thái code: [CHƯA CÓ]
+  Vấn đề:
+    - QASection.jsx = dữ liệu cứng, không nối product_qa.
+  Cần sửa báo cáo:
+    - Bỏ khỏi phạm vi đã triển khai hoặc ghi "kế hoạch phát triển".
+
+UC: So sánh sản phẩm (trong đặc tả chi tiết)
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Có widget so sánh trên ProductDetail (tối đa 3 SP), đơn giản.
+  Cần sửa báo cáo:
+    - Mô tả đúng mức: so sánh thủ công trên trang chi tiết, không phải module riêng.
+
+UC: Đăng nhập bằng số điện thoại
+  Trạng thái code: [CHƯA CÓ]
+  Vấn đề:
+    - Thực tế đăng nhập/đăng ký bằng email (+ Facebook).
+  Cần sửa báo cáo:
+    - Sửa luồng: email thay cho "email/số điện thoại" hoặc ghi phone là tùy chọn profile.
+
+--------------------------------------------------------------------------------
+2.2. NHÂN VIÊN (STAFF)
+--------------------------------------------------------------------------------
+
+UC: Hỗ trợ khách hàng qua chat
+  Trạng thái code: [CHƯA CÓ]
+  Cần sửa báo cáo: Đánh dấu chưa triển khai hoặc loại khỏi phạm vi demo.
+
+UC: Quản lý vận chuyển (tạo vận đơn, mã vận đơn)
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Chỉ cập nhật trạng thái đơn SHIPPING/COMPLETED thủ công.
+    - Không tích hợp GHN, GHTK, Viettel Post.
+  Cần sửa báo cáo:
+    - Đổi thành "Cập nhật trạng thái giao hàng trên hệ thống".
+    - Bỏ tiếp nhận vận đơn từ carrier.
+
+UC: Quản lý kho (xuất kho, đóng gói)
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Có phiếu nhập kho + cảnh báo low-stock.
+    - Không có phiếu xuất / đóng gói / in phiếu giao.
+  Cần sửa báo cáo:
+    - Ghi rõ: nhập kho + theo dõi tồn; bỏ xuất kho nếu không code.
+
+UC: Đổi / hoàn trả (trong mô tả actor Staff)
+  Trạng thái code: [CHƯA CÓ]
+  Vấn đề:
+    - Không có quy trình đổi trả; chỉ REFUNDED trong testcase thanh toán.
+  Cần sửa báo cáo: Loại khỏi phạm vi hoặc ghi "kế hoạch".
+
+UC: Phân quyền Staff
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Staff vào /admin (role staff), ẩn module "Người dùng hệ thống".
+    - Không có portal riêng cho từng vai trò CSKH/kho/ship.
+  Cần sửa báo cáo:
+    - Mô tả: nhân viên dùng Admin Portal với quyền hạn chế.
+
+--------------------------------------------------------------------------------
+2.3. QUẢN TRỊ VIÊN (ADMIN)
+--------------------------------------------------------------------------------
+
+UC: Quản lý AI và gợi ý
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Module AdminAssistant, AdminRecommendation dùng số liệu mock UI.
+    - Không đọc ai_chat_logs từ DB; không chỉnh tham số engine.
+  Cần sửa báo cáo:
+    - "Xem thống kê chat AI (dự kiến)" hoặc nối API log thật trước khi báo cáo.
+
+UC: Xem báo cáo thống kê (xuất Excel/PDF)
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Dashboard tổng hợp từ API có; không xuất file.
+  Cần sửa báo cáo:
+    - Bỏ luồng phụ "xuất Excel/PDF" hoặc ghi chưa hỗ trợ.
+
+UC: Quản lý nội dung (hỏi đáp)
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - Có quản lý đánh giá, banner, tin tức; không quản lý product_qa.
+  Cần sửa báo cáo:
+    - Liệt kê đúng: đánh giá, slider, blog — không ghi Q&A DB.
+
+--------------------------------------------------------------------------------
+2.4. TÁC NHÂN PHỤ (TRONG BÁO CÁO NHƯNG CODE CHƯA CÓ)
+--------------------------------------------------------------------------------
+
+Actor + UC: Đơn vị vận chuyển (tiếp nhận vận đơn, cập nhật trạng thái)
+  Trạng thái code: [MỘT PHẦN] — chỉ cập nhật tay
+  Cần sửa báo cáo:
+    - Gộp vào luồng Admin/Staff cập nhật trạng thái đơn.
+    - Hoặc đánh dấu tích hợp carrier là giai đoạn sau.
+
+Actor + UC: Hệ thống gợi ý (4 use case)
+  - Gợi ý theo hành vi
+  - Gợi ý khi hết hàng
+  - Gợi ý nâng cấp cấu hình
+  - Gợi ý phụ kiện phù hợp
+  Trạng thái code: [CHƯA CÓ] service riêng
+  Cần sửa báo cáo:
+    - Bỏ actor riêng; gộp vào "Trợ lý AI" + "Sản phẩm nổi bật".
+    - Bảng user_behaviors: ghi "thiết kế CSDL, chưa triển khai".
+
+Actor: Trợ lý AI — Gợi ý SP tương tự khi hết hàng / đặt trước
+  Trạng thái code: [MỘT PHẦN]
+  Vấn đề:
+    - AI rank theo keyword, không kiểm tra tồn kho trong luồng chat.
+  Cần sửa báo cáo:
+    - Thu hẹp mô tả A2, A3 trong đặc tả AI.
+
+--------------------------------------------------------------------------------
+PHẦN 3. CHỨC NĂNG CÓ TRONG CODE — BÁO CÁO NÊN BỔ SUNG (THỪA / THIẾU TRONG BẢNG UC)
+================================================================================
+
+Các use case / chức năng NÊN THÊM vào bảng use case tổng quát:
+
+  1. Đăng nhập Facebook
+     - FE: /auth/facebook-callback
+     - BE: POST /api/auth/facebook
+
+  2. Quên mật khẩu / đặt lại mật khẩu qua email
+     - FE: /reset-password
+     - BE: forgot-password, verify-reset-code, reset-password
+
+  3. Áp dụng mã voucher / giảm giá
+     - FE: /cart
+     - BE: GET /api/vouchers/check/:code
+
+  4. Đọc tin tức / blog
+     - FE: /news, /news/:id
+     - BE: /api/blog/posts/*
+
+  5. Nhận và đọc thông báo
+     - FE: /notifications
+     - BE: /api/notifications/my
+
+  6. Quản lý hồ sơ và sổ địa chỉ giao hàng
+     - FE: /profile
+     - BE: /api/profile/me, /me/addresses
+
+  7. Quản lý thương hiệu (Admin)
+     - BE: /api/brands, /api/brand-media
+
+  8. Quản lý danh mục sản phẩm (Admin)
+     - BE: /api/product-categories
+
+  9. Quản lý voucher (Admin)
+     - BE: /api/vouchers
+
+  10. Quản lý banner trang chủ (Admin)
+      - BE: /api/sliders
+
+  11. Gửi thông báo cho người dùng (Admin)
+      - BE: POST /api/notifications/admin/send
+
+  12. Admin đa phạm vi (điện thoại, tablet, phụ kiện, đồng hồ theo email)
+      - FE: adminScope.js, AdminEnhanced
+
+  13. Nhiều trang danh mục: điện thoại, tablet, phụ kiện, smartwatch, màn hình/máy in, sim, dịch vụ, máy cũ
+
+  14. Gộp giỏ hàng khi đăng nhập
+      - BE: POST /api/cart/merge
+
+  15. Tài liệu API Swagger
+      - GET /api-docs
+
+================================================================================
+PHẦN 4. DANH SÁCH ƯU TIÊN SỬA (CHO NHÓM)
+================================================================================
+
+Mức 1 — Sửa báo cáo ngay (không cần code):
+  [ ] Thu hẹp actor "Hệ thống gợi ý" và "Đơn vị vận chuyển"
+  [ ] Sửa UC "Chat hỗ trợ" → chỉ AI
+  [ ] Đánh dấu "chưa triển khai": đặt trước UI, gửi review FE, chat staff, Q&A DB, đổi trả
+  [ ] Bổ sung 15 chức năng Phần 3 vào bảng UC tổng quát
+  [ ] Sửa đặc tả Admin AI/Gợi ý và xuất Excel/PDF
+
+Mức 2 — Sửa code nếu muốn báo cáo giữ nguyên nội dung:
+  [ ] Form gửi đánh giá trên ProductDetail
+  [ ] Tùy chọn đặt trước (PRE_ORDER) trên Cart
+  [ ] Admin đọc ai_chat_logs thật (bỏ mock AdminAssistant)
+  [ ] Q&A nối API product_qa (hoặc bỏ QASection mock)
+
+Mức 3 — Dài hạn (có thể không kịp đồ án):
+  [ ] Recommendation engine + user_behaviors
+  [ ] Chat nhân viên (chat_rooms API + UI staff)
+  [ ] Tích hợp API đơn vị vận chuyển
+  [ ] Quy trình đổi/hoàn trả
+  [ ] Socket.IO realtime trên frontend thông báo
+
+================================================================================
+PHẦN 5. BẢNG ĐỐI CHIẾU NHANH (UC BÁO CÁO → TRẠNG THÁI)
+================================================================================
+
+  UC Khách hàng                          | Trạng thái   | Hành động đề xuất
+  ---------------------------------------|--------------|---------------------------
+  Đăng ký / đăng nhập                    | CÓ           | Giữ
+  Xem và tìm kiếm SP                     | CÓ           | Giữ
+  Xem chi tiết SP                        | CÓ           | Giữ
+  Quản lý giỏ hàng                       | CÓ           | Giữ
+  Đặt hàng / đặt trước                   | MỘT PHẦN     | Sửa báo cáo hoặc thêm FE
+  Thanh toán                             | CÓ           | Giữ
+  Quản lý đơn hàng                       | CÓ           | Giữ
+  Đánh giá sản phẩm                      | MỘT PHẦN     | Sửa báo cáo hoặc thêm form FE
+  Chat hỗ trợ                            | MỘT PHẦN     | Sửa thành Chat AI
+  Xem gợi ý sản phẩm                     | MỘT PHẦN     | Sửa mô tả
+
+  UC Nhân viên                           | Trạng thái   | Hành động đề xuất
+  ---------------------------------------|--------------|---------------------------
+  Hỗ trợ khách qua chat                  | CHƯA CÓ      | Bỏ hoặc đánh dấu chưa có
+  Quản lý đơn hàng                       | MỘT PHẦN     | Ghi dùng Admin Portal
+  Quản lý vận chuyển                     | MỘT PHẦN     | Thu hẹp mô tả
+  Quản lý kho                            | MỘT PHẦN     | Thu hẹp mô tả
+
+  UC Admin                               | Trạng thái   | Hành động đề xuất
+  ---------------------------------------|--------------|---------------------------
+  Quản lý sản phẩm                       | CÓ           | Giữ
+  Quản lý người dùng                     | CÓ           | Giữ
+  Quản lý đơn hàng                       | CÓ           | Giữ
+  Quản lý nội dung                       | MỘT PHẦN     | Sửa danh sách con
+  Quản lý AI và gợi ý                    | MỘT PHẦN     | Sửa mô tả / nối log
+  Xem báo cáo thống kê                   | MỘT PHẦN     | Bỏ xuất file
+
+  UC Cổng thanh toán                     | CÓ           | Giữ (sandbox)
+  UC Đơn vị vận chuyển                   | MỘT PHẦN     | Sửa báo cáo
+  UC Trợ lý AI                           | MỘT PHẦN     | Thu hẹp UC hết hàng
+  UC Hệ thống gợi ý                      | CHƯA CÓ      | Bỏ actor hoặc gộp
+
+================================================================================
+PHẦN 6. GHI CHÚ KỸ THUẬT (TESTCASE SQL)
+================================================================================
+
+  - File seed.sql có khối MOCK DATA (Dell Mock, Apple Mock, Asus Mock) phục vụ
+    test thanh toán VNPAY/MoMo — GIỮ NGUYÊN theo yêu cầu nhóm.
+  - Frontend ẩn catalog Mock qua paymentMockCatalog.js (không hiển thị trên web).
+  - Không coi testcase SQL là use case nghiệp vụ cần xóa khỏi báo cáo.
+
+================================================================================
+PHẦN 7. FILE / ROUTE THAM CHIẾU (KHI SỬA BÁO CÁO)
+================================================================================
+
+  Frontend chính:     frontend/src/AppEnhanced.jsx
+  Admin:              frontend/src/pages/AdminEnhanced.jsx
+  Giỏ & thanh toán:   frontend/src/pages/CartEnhanced.jsx
+  AI chat:            frontend/src/components/Chatbot.jsx
+  Backend entry:      backend/serverEnhanced.js
+  Auth:               backend/routes/authRoutes.js
+  Đơn & thanh toán:   backend/routes/orderRoutes.js, paymentRoutes.js
+  AI:                 backend/routes/aiRoutes.js, backend/ai_service/
+  SQL seed:           backend/database/seed.sql
+
+================================================================================
+                              HẾT BÁO CÁO
+================================================================================

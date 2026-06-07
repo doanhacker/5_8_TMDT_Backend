@@ -1,0 +1,31 @@
+TEST CASE 38
+==================
+Chức năng    : Admin quản lý người dùng
+Mô tả        : Tìm kiếm và phân quyền/khóa tài khoản thành công
+
+Dữ liệu đầu vào:
+Từ khóa: email người dùng hợp lệ
+Quyền mới: Nhân viên/Khách hàng hoặc trạng thái khóa
+
+Bước thực hiện (theo file testcase):
+1. Admin truy cập Quản lý người dùng.
+2. Tìm kiếm người dùng.
+3. Thay đổi quyền hoặc khóa tài khoản.
+4. Xác nhận lưu.
+
+Kết quả mong đợi:
+Hệ thống cập nhật quyền/trạng thái tài khoản thành công.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+GET customers: 0 KH. Không thấy khách trong danh sách
+
+Cách kiểm tra trên hệ thống:
+1. /admin → Khách hàng
+2. Tìm khachhang01@example.com
+3. Khóa tài khoản → xác nhận
+4. Mở khóa lại
+
+Ghi chú:
+(không)

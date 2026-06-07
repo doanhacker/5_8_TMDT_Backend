@@ -1,0 +1,28 @@
+TEST CASE 41
+==================
+Chức năng    : Admin quản lý đơn hàng
+Mô tả        : Admin ghi đè trạng thái đơn hàng thành công
+
+Dữ liệu đầu vào:
+Đơn hàng có tranh chấp/lỗi
+Thao tác: Ép hủy hoặc duyệt hoàn tiền
+
+Bước thực hiện (theo file testcase):
+1. Admin chọn Quản lý đơn hàng.
+2. Tìm đơn hàng cần can thiệp.
+3. Thực hiện ghi đè trạng thái.
+4. Lưu thay đổi.
+
+Kết quả mong đợi:
+Hệ thống cập nhật trạng thái, lưu lịch sử thao tác Admin và thông báo cho khách hàng.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+Ghi đè đơn #920 → CANCELLED: Không thể hủy đơn hàng đã ở trạng thái xử lý, đang giao hoặc hoàn thành.
+
+Cách kiểm tra trên hệ thống:
+/admin → Đơn hàng → chọn đơn → đổi Đã hủy → Lưu.
+
+Ghi chú:
+(không)

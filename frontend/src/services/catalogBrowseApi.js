@@ -1,4 +1,5 @@
 import { buildApiUrl } from "../config/api"
+import { filterPaymentMockProducts } from "../utils/paymentMockCatalog"
 
 const requestJson = async (path) => {
   const res = await fetch(buildApiUrl(path))
@@ -25,5 +26,9 @@ export const getProductsByFilter = async ({ brandId, categoryId, page = 1, limit
   if (brandId) params.set("brandId", String(brandId))
   if (categoryId) params.set("categoryId", String(categoryId))
 
-  return requestJson(`/api/products?${params.toString()}`)
+  const data = await requestJson(`/api/products?${params.toString()}`)
+  if (Array.isArray(data?.data)) {
+    return { ...data, data: filterPaymentMockProducts(data.data) }
+  }
+  return data
 }

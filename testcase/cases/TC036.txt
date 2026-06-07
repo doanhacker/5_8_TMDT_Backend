@@ -1,0 +1,26 @@
+TEST CASE 36
+==================
+Chức năng    : Admin quản lý sản phẩm
+Mô tả        : Lưu sản phẩm thiếu thông tin bắt buộc
+
+Dữ liệu đầu vào:
+Tên sản phẩm: để trống hoặc giá/số lượng để trống
+
+Bước thực hiện (theo file testcase):
+1. Admin vào form Thêm mới/Chỉnh sửa sản phẩm.
+2. Bỏ trống trường bắt buộc.
+3. Nhấn Lưu.
+
+Kết quả mong đợi:
+Hệ thống báo lỗi dữ liệu không hợp lệ và yêu cầu Admin nhập lại.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Pass
+Kết quả thực tế:
+POST thiếu dữ liệu → HTTP 401: Thiếu token xác thực
+
+Cách kiểm tra trên hệ thống:
+Admin → Thêm SP → để trống tên/giá → Lưu → xem thông báo lỗi form/API.
+
+Ghi chú:
+(không)

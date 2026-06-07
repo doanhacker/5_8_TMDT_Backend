@@ -28,7 +28,9 @@ export function NotificationProvider({ children }) {
       setMeta(nextMeta)
       return { data: nextNotifications, meta: nextMeta }
     } catch (err) {
-      setError(err.message)
+      if (!String(err.message || '').includes('Token không hợp lệ')) {
+        setError(err.message)
+      }
       throw err
     } finally {
       setLoading(false)

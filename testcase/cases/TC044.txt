@@ -1,0 +1,27 @@
+TEST CASE 44
+==================
+Chức năng    : Admin quản lý nội dung
+Mô tả        : Lỗi thao tác khi mất kết nối
+
+Dữ liệu đầu vào:
+Nội dung chờ duyệt
+Giả lập mất kết nối khi Admin thao tác
+
+Bước thực hiện (theo file testcase):
+1. Admin chọn nội dung cần duyệt.
+2. Nhấn Duyệt/Ẩn/Xóa.
+3. Mất kết nối trong lúc lưu.
+
+Kết quả mong đợi:
+Hệ thống hiển thị thông báo lỗi và yêu cầu tải lại trang, không cập nhật sai trạng thái.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): N/A
+Kết quả thực tế:
+Test thủ công: DevTools Offline khi admin xóa/duyệt nội dung.
+
+Cách kiểm tra trên hệ thống:
+F12 → Network Offline → thao tác xóa review.
+
+Ghi chú:
+(không)

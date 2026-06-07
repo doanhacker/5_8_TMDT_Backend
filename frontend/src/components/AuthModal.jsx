@@ -245,9 +245,10 @@ export default function AuthModal({ onClose }) {
             </p>
             <div className="auth-demo">
               <p style={{ fontSize: '12px', color: '#666', marginTop: '15px' }}>
-                <strong>Tài khoản demo:</strong><br/>
-                Admin: admin@laptopshop.vn / Admin@123456<br/>
-                User: user@example.com / User@123<br/>
+                <strong>Tài khoản test (ô Email / ô Mật khẩu):</strong><br/>
+                Admin: admin.test@laptop-shop.com / Admin@123<br/>
+                (hoặc admin@laptop-shop.com / Admin@123)<br/>
+                Khách: khachhang01@example.com / P@ssword123<br/>
               </p>
             </div>
           </>

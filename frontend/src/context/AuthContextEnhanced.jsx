@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react"
 import { buildApiUrl } from "../config/api"
-import { clearAuthToken, getAuthToken, setAuthToken } from "../lib/authToken"
+import { clearAuthToken, getAuthToken, setAuthToken, setUnauthorizedHandler } from "../lib/authToken"
 
 const AuthContext = createContext()
 
@@ -43,34 +43,65 @@ export function AuthProvider({ children, onAuthChange }) {
     return normalized
   }
 
+  const clearSession = async () => {
+    clearAuthToken()
+    localStorage.removeItem("user")
+    setUser(null)
+    if (onAuthChangeRef.current) {
+      await onAuthChangeRef.current(null)
+    }
+  }
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      clearSession()
+    })
+
+    return () => setUnauthorizedHandler(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // ── Khôi phục session khi load app ─────────────────────────────────────────
   // THAY ĐỔI: Gọi onAuthChange sau khi restore để CartContext fetch cart
   // đúng theo user (thay vì chỉ dùng session_id của khách)
   useEffect(() => {
     const initAuth = async () => {
       const token = getAuthToken()
-      const savedUser = localStorage.getItem("user")
 
-      if (token && savedUser) {
-        try {
-          const userData = JSON.parse(savedUser)
-          // Dùng applyUser thay vì setUser trực tiếp
-          await applyUser(userData)
-        } catch (error) {
-          console.error("Error parsing saved user:", error)
-          clearAuthToken()
-          localStorage.removeItem("user")
-          // Thông báo CartContext user = null để fetch cart theo session
-          if (onAuthChangeRef.current) {
-            await onAuthChangeRef.current(null)
-          }
-        }
-      } else {
-        // Không có session — thông báo CartContext fetch cart theo session_id
+      if (!token) {
+        localStorage.removeItem("user")
         if (onAuthChangeRef.current) {
           await onAuthChangeRef.current(null)
         }
+        setLoading(false)
+        return
       }
+
+      try {
+        const res = await fetch(buildApiUrl("/api/profile/me"), {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!res.ok) {
+          await clearSession()
+          setLoading(false)
+          return
+        }
+
+        const payload = await res.json()
+        if (payload.success && payload.data) {
+          localStorage.setItem("user", JSON.stringify(payload.data))
+          await applyUser(payload.data)
+        } else {
+          await clearSession()
+        }
+      } catch (error) {
+        console.error("Error validating auth session:", error)
+        await clearSession()
+      }
+
       setLoading(false)
     }
 
@@ -180,13 +211,7 @@ export function AuthProvider({ children, onAuthChange }) {
     } catch (error) {
       // ignore network/logout API errors
     } finally {
-      clearAuthToken()
-      localStorage.removeItem("user")
-      setUser(null)
-      // Thông báo CartContext: user = null → fetch cart theo session_id mới
-      if (onAuthChangeRef.current) {
-        await onAuthChangeRef.current(null)
-      }
+      await clearSession()
     }
   }
 

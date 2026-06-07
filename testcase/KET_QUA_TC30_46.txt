@@ -1,0 +1,30 @@
+KẾT QUẢ KIỂM THỬ TC30 - TC46 (PASS / FAIL / KIỂM TRA LẠI)
+File testcase: Testcase.xlsx
+Cập nhật sau khi test trực tiếp các mục "Kiểm tra lại": 24/5/2026
+
+================================================================================
+STT | Trạng thái | Mô tả (rút gọn)                         | Kết quả thực tế
+================================================================================
+30  | Fail       | NV chat tiếp nhận KH                    | Không có API/UI chat nhân viên
+31  | Fail       | KH không hài lòng qua chat              | Không có luồng chat NV
+32  | Fail       | NV thiếu thông tin                      | Không có chức năng tương ứng
+33  | Pass       | NV cập nhật trạng thái đơn              | Đổi đơn → PROCESSING thành công
+34  | Pass       | Lỗi khi cập nhật trạng thái đơn         | Gửi trạng thái INVALID → HTTP 400, đơn không đổi
+35  | Fail       | Admin thêm SP mới                        | API lỗi DB: thiếu cột created_by trong bảng products
+36  | Pass       | SP thiếu thông tin bắt buộc             | API trả 400 lỗi dữ liệu
+37  | Fail       | SP trùng mã/SKU                          | Không test được do lỗi tạo SP (cùng lỗi created_by)
+38  | Pass       | Admin tìm & khóa KH                      | Khóa/mở khách hàng thành công
+39  | Pass       | Không tìm thấy user                      | Tìm email không tồn tại → 0 kết quả
+40  | Fail       | Admin không tự khóa mình                 | Hệ thống không chặn thao tác tự khóa
+41  | Pass       | Admin ghi đè trạng thái đơn              | Đơn chờ xác nhận → Hủy thành công
+42  | Fail       | Lỗi đồng bộ ghi đè đơn                   | Đơn CANCELLED vẫn đổi sang PROCESSING (HTTP 200) — sai quy trình
+43  | Pass       | Admin xóa review                         | Xóa review thành công
+44  | Pass       | Mất kết nối khi duyệt nội dung          | Xóa review không tồn tại → 404; không token → 401
+45  | Fail       | Dashboard + xuất Excel/PDF               | Dashboard có; chưa có xuất báo cáo
+46  | Fail       | Dashboard khoảng thời gian trống        | Không có bộ lọc chọn ngày trên Dashboard
+================================================================================
+
+TỔNG: Pass=8 | Fail=9 | Kiểm tra lại=0
+
+Chi tiết test "Kiểm tra lại" đã chạy: testcase/KET_QUA_KIEM_TRA_LAI.txt
+Script: node testcase/run_kiem_tra_lai.mjs

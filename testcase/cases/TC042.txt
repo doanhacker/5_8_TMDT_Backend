@@ -1,0 +1,27 @@
+TEST CASE 42
+==================
+Chức năng    : Admin quản lý đơn hàng
+Mô tả        : Lỗi đồng bộ khi ghi đè trạng thái đơn hàng
+
+Dữ liệu đầu vào:
+Đơn hàng cần cập nhật
+Giả lập lỗi đồng bộ hệ thống
+
+Bước thực hiện (theo file testcase):
+1. Admin chọn đơn hàng.
+2. Thực hiện ghi đè trạng thái.
+3. Hệ thống xảy ra lỗi khi lưu.
+
+Kết quả mong đợi:
+Hệ thống báo lỗi, không lưu trạng thái sai và yêu cầu Admin thử lại.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): N/A
+Kết quả thực tế:
+Test thủ công: tắt DB khi admin lưu trạng thái đơn.
+
+Cách kiểm tra trên hệ thống:
+Giống TC34.
+
+Ghi chú:
+(không)

@@ -1,0 +1,27 @@
+TEST CASE 43
+==================
+Chức năng    : Admin quản lý nội dung
+Mô tả        : Duyệt/ẩn/xóa nội dung thành công
+
+Dữ liệu đầu vào:
+Bình luận/đánh giá/hỏi đáp đang chờ duyệt
+
+Bước thực hiện (theo file testcase):
+1. Admin truy cập Quản lý nội dung.
+2. Chọn nội dung cần xử lý.
+3. Thực hiện Duyệt hiển thị, Ẩn hoặc Xóa.
+
+Kết quả mong đợi:
+Hệ thống cập nhật trạng thái hiển thị nội dung trên trang sản phẩm tương ứng.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+HTTP 401: Thiếu token xác thực. Reviews hiện có: 0
+
+Cách kiểm tra trên hệ thống:
+/admin → Nội dung/Đánh giá → Xóa 1 review.
+API: DELETE /api/auth/admin/reviews/:id
+
+Ghi chú:
+Seed review #920 trong seed_mock_tc30_46.sql (chạy lại seed nếu đã xóa).

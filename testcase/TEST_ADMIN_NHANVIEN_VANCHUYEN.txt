@@ -1,0 +1,277 @@
+================================================================================
+TEST CASE: ADMIN + NHÂN VIÊN + VẬN CHUYỂN (TMĐT_nhóm8.xlsx)
+Tổng: 24 testcase (TC37 → TC56, TC63 → TC66)
+================================================================================
+
+■ CHUẨN BỊ
+  Backend : npm run dev  →  http://localhost:5000
+  Frontend: npm run dev  →  http://localhost:5173
+  Admin   : http://localhost:5173/admin
+  Login   : admin@laptop-shop.com / admin123
+  Swagger : http://localhost:5000/api-docs
+
+  Lưu ý: Màn Admin gộp cả vai trò Admin và thao tác nhân viên (đơn, kho).
+  Chưa có portal riêng cho “nhân viên” — dùng chung /admin.
+
+================================================================================
+■ TỔNG HỢP NHANH
+================================================================================
+  Pass    :  2  (TC37, TC46)
+  Partial : 12  (TC41-45, 47-49, 51, 55-56)
+  Fail    :  6  (TC39-40, 53-54, 63-66)
+  N/A     :  4  (TC38, 42, 50, 52)
+
+  Chạy được ngay trên UI : TC37, TC41, TC43-46, TC49, TC51, TC55-56
+  Chưa có trong hệ thống : TC39-40 (tạo vận đơn), TC53-54 (cấu hình AI),
+                           TC63-66 (API đơn vị vận chuyển GHN/GHTK…)
+
+================================================================================
+■ A. NHÂN VIÊN — QUẢN LÝ ĐƠN HÀNG (TC37–38)
+================================================================================
+
+TC37 | Cập nhật trạng thái đơn thành công
+  Trạng thái : PASS (đã test API — đổi PROCESSING OK)
+  Màn hình   : Admin → Đơn hàng (Orders)
+  Cách test UI:
+    1. Login admin → /admin
+    2. Tab/menu "Đơn hàng"
+    3. Chọn đơn trạng thái Chờ xác nhận / PENDING
+    4. Đổi sang "Đang xử lý" hoặc "Đang giao" → Lưu
+    5. Kiểm tra khách nhận thông báo (nếu bật notification)
+  Cách test API:
+    PUT /api/orders/{orderId}/status
+    Header: Authorization: Bearer {admin_token}
+    Body: {"status":"PROCESSING"}
+    Trạng thái hợp lệ: PENDING_CONFIRMATION, PROCESSING, SHIPPING,
+                       DELIVERED, COMPLETED, CANCELLED, ...
+
+TC38 | Lỗi khi cập nhật trạng thái đơn
+  Trạng thái : N/A (test thủ công)
+  Cách test:
+    1. Mở Admin → Đơn hàng → chọn đơn
+    2. Tắt MySQL hoặc Stop backend
+    3. Bấm Lưu trạng thái → phải báo lỗi, không đổi trạng thái sai
+
+================================================================================
+■ B. NHÂN VIÊN — VẬN CHUYỂN / VẬN ĐƠN (TC39–40)
+================================================================================
+
+TC39 | Tạo vận đơn thành công
+  Trạng thái : FAIL — Chưa có chức năng tạo vận đơn + mã vận đơn
+  Trong code : Không có API GHN/GHTK/J&T; đơn hàng không có field
+               tracking_number riêng trên UI admin
+  Cách test khi có tính năng:
+    Admin → Đơn hàng → đơn đã xác nhận → "Tạo vận đơn" → nhập mã → Lưu
+  Workaround hiện tại:
+    Chỉ đổi trạng thái đơn sang SHIPPING/DELIVERED (TC37) — không tạo
+    vận đơn thật với đối tác vận chuyển
+
+TC40 | Lỗi khi tạo vận đơn
+  Trạng thái : FAIL — Cùng lý do TC39
+  Cách test : Giả lập cổng vận chuyển trả lỗi khi gọi API tạo vận đơn
+
+================================================================================
+■ C. NHÂN VIÊN — QUẢN LÝ KHO (TC41–42)
+================================================================================
+
+TC41 | Kiểm tra đơn sẵn sàng giao & cập nhật kho
+  Trạng thái : PARTIAL
+  Màn hình   : Admin → Kho hàng / Inventory
+  Cách test UI:
+    1. /admin → tab Inventory (Kho)
+    2. Xem "Sản phẩm sắp hết hàng" (low stock)
+    3. Tạo phiếu nhập kho (Import receipt) nếu có form
+  API:
+    GET  /api/inventory/low-stock
+    GET  /api/inventory/receipts
+    POST /api/inventory/receipts
+
+TC42 | Không xử lý đơn do địa chỉ giao không hợp lệ
+  Trạng thái : N/A / PARTIAL
+  Cách test:
+    1. Tạo đơn thiếu địa chỉ (hoặc sửa DB orders.address_id = NULL)
+    2. Admin mở chi tiết đơn → thử chuyển sang giao hàng
+    3. Kỳ vọng: báo lỗi, không cho tiếp tục
+  Ghi chú: API tạo đơn phía khách vẫn cho address_id=null (lỗi TC19)
+
+================================================================================
+■ D. ADMIN — QUẢN LÝ SẢN PHẨM (TC43–45)
+================================================================================
+
+TC43 | Thêm sản phẩm mới thành công
+  Trạng thái : PARTIAL (có API + form, cần test tay đủ field)
+  Màn hình   : Admin → Sản phẩm → Thêm mới
+  Cách test UI:
+    1. /admin → Products → Thêm
+    2. Điền: tên, brand, category, CPU, RAM, giá, tồn, upload ảnh
+    3. Lưu → SP xuất hiện danh sách + cửa hàng
+  API:
+    POST /api/products  (multipart/form-data, token admin)
+
+TC44 | Lưu SP thiếu thông tin bắt buộc
+  Trạng thái : PARTIAL
+  Cách test: Form thêm SP → để trống tên hoặc giá → Lưu → xem thông báo lỗi
+
+TC45 | Thêm SP trùng mã/SKU
+  Trạng thái : PARTIAL
+  Cách test: Nhập SKU đã có (variant sku trùng) → Lưu → báo trùng
+
+================================================================================
+■ E. ADMIN — QUẢN LÝ NGƯỜI DÙNG (TC46–48)
+================================================================================
+
+TC46 | Tìm kiếm & khóa / phân quyền tài khoản
+  Trạng thái : PASS (API GET customers 200)
+  Màn hình   : Admin → Khách hàng (Customers)
+  Cách test UI:
+    1. /admin → Customers
+    2. Tìm email: khachhang01@example.com
+    3. Khóa/mở khóa hoặc đổi trạng thái
+  API:
+    GET   /api/auth/admin/customers?search=...
+    PATCH /api/auth/admin/customers/{id}/status
+    GET   /api/auth/admin/users
+    POST  /api/auth/admin/users  (tạo staff)
+
+TC47 | Không tìm thấy người dùng
+  Trạng thái : PARTIAL
+  Cách test: Tìm email zzznotfound999 → danh sách rỗng / thông báo
+
+TC48 | Admin tự khóa tài khoản của mình
+  Trạng thái : PARTIAL (chưa xác minh đủ)
+  Cách test: Admin tìm chính email admin → thử Khóa → hệ thống phải chặn
+
+================================================================================
+■ F. ADMIN — QUẢN LÝ ĐƠN HÀNG (TC49–50)
+================================================================================
+
+TC49 | Admin ghi đè trạng thái đơn (ép hủy / hoàn tiền)
+  Trạng thái : PARTIAL — Cùng API TC37, thêm các trạng thái đặc biệt
+  Cách test UI:
+    Admin → Đơn hàng → chọn đơn tranh chấp → đổi CANCELLED / REFUNDED
+  API:
+    PUT /api/orders/{id}/status  Body: {"status":"CANCELLED"}
+
+TC50 | Lỗi đồng bộ khi ghi đè trạng thái
+  Trạng thái : N/A
+  Cách test: Tắt DB khi admin bấm Lưu (giống TC38)
+
+================================================================================
+■ G. ADMIN — QUẢN LÝ NỘI DUNG (TC51–52)
+================================================================================
+
+TC51 | Duyệt / ẩn / xóa đánh giá
+  Trạng thái : PARTIAL
+  Màn hình   : Admin → Nội dung (Content) hoặc Reviews
+  Cách test UI:
+    1. /admin → tab quản lý review/bình luận
+    2. Chọn 1 review → Xóa / Ẩn
+  API:
+    GET    /api/auth/admin/reviews
+    DELETE /api/auth/admin/reviews/{id}
+
+TC52 | Lỗi khi mất kết nối lúc duyệt
+  Trạng thái : N/A
+  Cách test: DevTools → Offline → bấm Xóa/Duyệt → báo lỗi
+
+================================================================================
+■ H. ADMIN — AI & GỢI Ý (TC53–54)
+================================================================================
+
+TC53 | Cập nhật tham số gợi ý / kịch bản AI
+  Trạng thái : FAIL
+  Màn hình   : Admin có tab "Recommendation" / "Assistant" nhưng không
+               lưu tham số trọng số như testcase mô tả
+  Cách test : Kiểm tra /admin → không có form trọng số 0.3, ưu tiên hàng mới
+
+TC54 | Tham số cấu hình không hợp lệ
+  Trạng thái : FAIL — Không có form cấu hình
+
+================================================================================
+■ I. ADMIN — BÁO CÁO / DASHBOARD (TC55–56)
+================================================================================
+
+TC55 | Xem Dashboard & xuất báo cáo
+  Trạng thái : PARTIAL — Dashboard có, chưa thấy Xuất Excel/PDF
+  Màn hình   : Admin → Dashboard (mặc định khi vào /admin)
+  Cách test UI:
+    1. /admin → xem biểu đồ doanh thu / đơn hàng
+    2. Chọn khoảng thời gian → Xem
+    3. Tìm nút Xuất Excel/PDF (hiện chưa có → ghi Fail phần export)
+
+TC56 | Khoảng thời gian không có dữ liệu
+  Trạng thái : PARTIAL
+  Cách test: Chọn ngày tương lai hoặc năm cũ không có đơn → chart trống
+
+================================================================================
+■ J. ĐƠN VỊ VẬN CHUYỂN (TÍCH HỢP BÊN THỨ 3) — TC63–66
+================================================================================
+
+TC63 | ĐVVC tiếp nhận vận đơn thành công
+  Trạng thái : FAIL — Không gửi webhook/API sang GHN, GHTK, J&T
+  Cách test khi có tích hợp:
+    Xác nhận đơn → hệ thống POST sang đối tác → nhận mã vận đơn
+
+TC64 | Thông tin vận đơn không hợp lệ
+  Trạng thái : FAIL
+  Cách test: Gửi payload thiếu SĐT/địa chỉ → đối tác trả lỗi
+
+TC65 | ĐVVC cập nhật trạng thái giao (Đang giao / Đã giao)
+  Trạng thái : FAIL — Không có webhook nhận từ đơn vị vận chuyển
+  Workaround: Admin tự đổi trạng thái đơn (TC37) thay cho webhook
+
+TC66 | Lỗi cập nhật trạng thái giao hàng
+  Trạng thái : FAIL / N/A
+  Cách test: Giả lập webhook lỗi khi cập nhật SHIPPING/DELIVERED
+
+================================================================================
+■ BẢNG TRA CỨU 24 TC
+================================================================================
+
+STT | Nhóm           | Trạng thái | Chạy được? | Ghi chú
+----|----------------|------------|------------|---------------------------
+ 37 | NV — Đơn hàng  | Pass       | Có         | Đổi trạng thái admin
+ 38 | NV — Đơn hàng  | N/A        | Manual     | Tắt server khi lưu
+ 39 | NV — Vận chuyển| Fail       | Không      | Chưa tạo vận đơn
+ 40 | NV — Vận chuyển| Fail       | Không      | Chưa API đối tác
+ 41 | NV — Kho       | Partial    | Một phần   | Inventory + phiếu nhập
+ 42 | NV — Kho       | N/A        | Manual     | Đơn thiếu địa chỉ
+ 43 | Admin — SP     | Partial    | Một phần   | Thêm SP + upload ảnh
+ 44 | Admin — SP     | Partial    | Một phần   | Validate form
+ 45 | Admin — SP     | Partial    | Một phần   | Trùng SKU
+ 46 | Admin — User   | Pass       | Có         | Tìm/khóa KH
+ 47 | Admin — User   | Partial    | Một phần   | Không thấy user
+ 48 | Admin — User   | Partial    | Một phần   | Chặn tự khóa admin
+ 49 | Admin — Đơn    | Partial    | Một phần   | Ghi đè trạng thái
+ 50 | Admin — Đơn    | N/A        | Manual     | Lỗi DB khi lưu
+ 51 | Admin — Nội dung| Partial   | Một phần   | Xóa review
+ 52 | Admin — Nội dung| N/A       | Manual     | Offline
+ 53 | Admin — AI     | Fail       | Không      | Không cấu hình tham số
+ 54 | Admin — AI     | Fail       | Không      | —
+ 55 | Admin — Báo cáo| Partial    | Một phần   | Dashboard, chưa export
+ 56 | Admin — Báo cáo| Partial    | Một phần   | Khoảng ngày trống
+ 63 | ĐVVC           | Fail       | Không      | Webhook đối tác
+ 64 | ĐVVC           | Fail       | Không      | Validate vận đơn
+ 65 | ĐVVC           | Fail       | Không      | Cập nhật trạng thái giao
+ 66 | ĐVVC           | Fail       | Không      | Lỗi webhook
+
+================================================================================
+■ ĐƯỜNG DẪN & API ADMIN THƯỜNG DÙNG
+================================================================================
+
+UI (http://localhost:5173/admin):
+  Dashboard | Sản phẩm | Kho | Đơn hàng | Khách hàng | Nội dung
+  Gợi ý/AI | Nhân viên | Tin tức | Slider | Voucher | Thông báo | Danh mục
+
+API chính:
+  Đơn hàng    PUT  /api/orders/:id/status
+              GET  /api/orders
+  Kho         GET  /api/inventory/low-stock
+              POST /api/inventory/receipts
+  Sản phẩm    POST /api/products  (admin token)
+  Khách hàng  GET  /api/auth/admin/customers
+              PATCH /api/auth/admin/customers/:id/status
+  Review      DELETE /api/auth/admin/reviews/:id
+  Nhân viên   GET/POST /api/auth/admin/users
+
+================================================================================

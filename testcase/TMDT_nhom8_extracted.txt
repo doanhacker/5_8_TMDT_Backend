@@ -1,0 +1,341 @@
+SHEETS: Test Cases, Tên đề tài
+
+===== SHEET: Test Cases =====
+STT | Chức năng
+kiểm thử | Mô tả test case | Dữ liệu
+đầu vào | Bước thực
+hiện | Kết quả mong
+đợi | Kết quả thực tế | Trạng thái
+(Pass/Fail) | Ghi chú
+1 | Đăng ký tài khoản | Đăng ký thành công bằng Email/SĐT chưa tồn tại | Họ tên: Nguyễn Văn A
+Email: khachhang01@example.com
+SĐT: 0912345678
+Mật khẩu: P@ssword123 | 1. Truy cập màn hình Đăng ký.
+2. Nhập đầy đủ họ tên, Email/SĐT và mật khẩu hợp lệ.
+3. Nhấn nút Đăng ký. | Hệ thống tạo tài khoản mới, hiển thị thông báo đăng ký thành công và cho phép người dùng đăng nhập/sử dụng hệ thống. |  |  | 
+2 | Đăng ký tài khoản | Đăng ký với Email/SĐT đã tồn tại | Email/SĐT đã có trong hệ thống
+Email: khachhang01@example.com
+Mật khẩu: P@ssword123 | 1. Truy cập màn hình Đăng ký.
+2. Nhập Email/SĐT đã tồn tại.
+3. Nhấn nút Đăng ký. | Hệ thống hiển thị thông báo “Tài khoản đã tồn tại” và yêu cầu nhập Email/SĐT khác. |  |  | 
+3 | Đăng nhập | Đăng nhập thành công với tài khoản hợp lệ | Email/SĐT: khachhang01@example.com
+Mật khẩu: P@ssword123 | 1. Truy cập màn hình Đăng nhập.
+2. Nhập Email/SĐT và mật khẩu đúng.
+3. Nhấn nút Đăng nhập. | Người dùng đăng nhập thành công và được chuyển đến trang chính/trang sản phẩm của hệ thống. |  |  | 
+4 | Đăng nhập | Đăng nhập thất bại do sai mật khẩu | Email/SĐT: khachhang01@example.com
+Mật khẩu: sai123 | 1. Truy cập màn hình Đăng nhập.
+2. Nhập Email/SĐT đúng nhưng mật khẩu sai.
+3. Nhấn nút Đăng nhập. | Hệ thống hiển thị thông báo “Sai tài khoản hoặc mật khẩu” và không cho phép đăng nhập. |  |  | 
+5 | Xem và tìm kiếm sản phẩm | Hiển thị danh sách sản phẩm khi truy cập trang sản phẩm | Tài khoản khách hàng đã đăng nhập
+Hệ thống có dữ liệu sản phẩm | 1. Đăng nhập bằng tài khoản khách hàng.
+2. Truy cập trang Sản phẩm/Danh mục sản phẩm. | Hệ thống hiển thị danh sách sản phẩm hiện có gồm tên, giá, hình ảnh và thông tin cơ bản. |  |  | 
+6 | Xem và tìm kiếm sản phẩm | Tìm kiếm và lọc sản phẩm có kết quả phù hợp | Từ khóa: laptop gaming
+Bộ lọc: Giá 15–25 triệu, RAM 16GB, thương hiệu ASUS | 1. Truy cập trang sản phẩm.
+2. Nhập từ khóa tìm kiếm.
+3. Chọn các bộ lọc cần áp dụng.
+4. Nhấn Tìm kiếm/Lọc. | Hệ thống hiển thị danh sách sản phẩm phù hợp với từ khóa và bộ lọc đã chọn. |  |  | 
+7 | Xem và tìm kiếm sản phẩm | Tìm kiếm/lọc không có sản phẩm phù hợp | Từ khóa: sản phẩm không tồn tại
+Bộ lọc: Giá rất thấp, cấu hình cao | 1. Truy cập trang sản phẩm.
+2. Nhập từ khóa hoặc bộ lọc không có dữ liệu phù hợp.
+3. Nhấn Tìm kiếm/Lọc. | Hệ thống hiển thị thông báo “Không tìm thấy sản phẩm phù hợp” và cho phép thay đổi điều kiện tìm kiếm. |  |  | 
+8 | Xem và tìm kiếm sản phẩm | Lỗi tải dữ liệu sản phẩm | Trang sản phẩm
+Giả lập mất kết nối hoặc lỗi máy chủ/cơ sở dữ liệu | 1. Truy cập trang sản phẩm hoặc thực hiện tìm kiếm.
+2. Hệ thống gửi yêu cầu lấy dữ liệu sản phẩm.
+3. Giả lập lỗi kết nối/lỗi máy chủ. | Hệ thống hiển thị thông báo “Không thể tải dữ liệu…” và không làm treo giao diện. |  |  | 
+9 | Xem chi tiết sản phẩm | Xem chi tiết sản phẩm tồn tại | Sản phẩm: Laptop ABC
+Trạng thái: Đang bán, còn dữ liệu mô tả/cấu hình/hình ảnh | 1. Đăng nhập vào hệ thống.
+2. Truy cập danh sách sản phẩm.
+3. Chọn một sản phẩm đang tồn tại. | Hệ thống hiển thị đầy đủ thông tin chi tiết sản phẩm: mô tả, cấu hình, hình ảnh, giá và đánh giá. |  |  | 
+10 | Xem chi tiết sản phẩm | Xem chi tiết sản phẩm không tồn tại/đã bị xóa | Sản phẩm ID không tồn tại hoặc đã bị xóa | 1. Truy cập danh sách sản phẩm.
+2. Chọn sản phẩm đã bị xóa hoặc truy cập link chi tiết sản phẩm không tồn tại. | Hệ thống hiển thị thông báo “Sản phẩm không tồn tại hoặc đã bị xóa” và chuyển về trang danh sách sản phẩm. |  |  | 
+11 | Xem chi tiết sản phẩm | Sản phẩm chưa có đánh giá | Sản phẩm hợp lệ nhưng chưa có đánh giá | 1. Truy cập trang chi tiết sản phẩm.
+2. Quan sát khu vực đánh giá sản phẩm. | Hệ thống hiển thị thông báo “Chưa có đánh giá cho sản phẩm này” nhưng vẫn cho xem thông tin sản phẩm. |  |  | 
+12 | Quản lý giỏ hàng | Thêm sản phẩm còn hàng vào giỏ hàng | Sản phẩm: Laptop ABC
+Số lượng chọn: 1
+Tồn kho: 10 | 1. Truy cập trang chi tiết sản phẩm.
+2. Nhấn “Thêm vào giỏ hàng”. | Hệ thống kiểm tra tồn kho, thêm sản phẩm vào giỏ và hiển thị giỏ hàng đã cập nhật. |  |  | 
+13 | Quản lý giỏ hàng | Chỉnh sửa số lượng sản phẩm trong giỏ hợp lệ | Giỏ hàng có Laptop ABC
+Số lượng hiện tại: 1
+Số lượng mới: 2
+Tồn kho: 10 | 1. Mở giỏ hàng.
+2. Sửa số lượng sản phẩm từ 1 thành 2.
+3. Nhấn Cập nhật. | Hệ thống cập nhật số lượng và tính lại tổng tiền giỏ hàng chính xác. |  |  | 
+14 | Quản lý giỏ hàng | Xóa sản phẩm khỏi giỏ hàng | Giỏ hàng có ít nhất 1 sản phẩm | 1. Mở giỏ hàng.
+2. Chọn sản phẩm cần xóa.
+3. Nhấn Xóa/Xóa khỏi giỏ. | Sản phẩm bị xóa khỏi giỏ, tổng tiền và danh sách sản phẩm được cập nhật. |  |  | 
+15 | Quản lý giỏ hàng | Thêm sản phẩm đã hết hàng vào giỏ | Sản phẩm: Laptop XYZ
+Tồn kho: 0 | 1. Truy cập trang chi tiết sản phẩm đã hết hàng.
+2. Nhấn “Thêm vào giỏ hàng”. | Hệ thống hiển thị thông báo “Sản phẩm hiện đã hết hàng” và không thêm sản phẩm vào giỏ. |  |  | 
+16 | Quản lý giỏ hàng | Chọn số lượng vượt quá tồn kho | Sản phẩm: Laptop ABC
+Tồn kho: 3
+Số lượng chọn: 5 | 1. Thêm hoặc chỉnh sửa số lượng sản phẩm trong giỏ.
+2. Nhập số lượng lớn hơn tồn kho.
+3. Nhấn Cập nhật/Thêm vào giỏ. | Hệ thống hiển thị thông báo “Số lượng yêu cầu vượt quá số lượng tồn kho” và yêu cầu chọn lại số lượng. |  |  | 
+17 | Đặt hàng / đặt trước | Đặt hàng thành công với thông tin hợp lệ | Giỏ hàng có sản phẩm còn hàng
+Tên người nhận: Nguyễn Văn A
+Địa chỉ: 123 ABC
+SĐT: 0912345678
+Thanh toán: COD | 1. Truy cập giỏ hàng.
+2. Chọn “Đặt hàng”.
+3. Nhập thông tin giao hàng hợp lệ.
+4. Chọn phương thức thanh toán.
+5. Xác nhận đặt hàng. | Hệ thống tạo đơn hàng thành công, lưu vào cơ sở dữ liệu và hiển thị thông báo đặt hàng thành công. |  |  | 
+18 | Đặt hàng / đặt trước | Đặt trước sản phẩm chưa có sẵn/sắp về | Sản phẩm trạng thái: Sắp về/Cho đặt trước
+Thông tin giao hàng hợp lệ | 1. Truy cập sản phẩm cho phép đặt trước.
+2. Chọn Đặt trước.
+3. Nhập thông tin giao hàng.
+4. Xác nhận đặt trước. | Hệ thống tạo đơn đặt trước thành công và hiển thị thông tin xác nhận cho khách hàng. |  |  | 
+19 | Đặt hàng / đặt trước | Thông tin giao hàng không hợp lệ | Tên người nhận: để trống
+Địa chỉ: để trống
+SĐT: 123 | 1. Truy cập giỏ hàng.
+2. Chọn “Đặt hàng”.
+3. Nhập thiếu/sai định dạng thông tin giao hàng.
+4. Nhấn Xác nhận. | Hệ thống hiển thị thông báo “Thông tin giao hàng không hợp lệ” và yêu cầu nhập lại. |  |  | 
+20 | Đặt hàng / đặt trước | Sản phẩm trong giỏ không còn đủ số lượng khi đặt hàng | Giỏ hàng có sản phẩm số lượng 3
+Tồn kho thực tế còn 1 | 1. Truy cập giỏ hàng.
+2. Chọn “Đặt hàng”.
+3. Hệ thống kiểm tra lại tồn kho trước khi tạo đơn. | Hệ thống hiển thị thông báo “Sản phẩm đã hết hàng hoặc không đủ số lượng” và yêu cầu quay lại giỏ hàng để chỉnh sửa. |  |  | 
+21 | Thanh toán | Thanh toán COD thành công | Đơn hàng hợp lệ
+Phương thức thanh toán: COD | 1. Tại bước thanh toán, chọn COD.
+2. Xem lại thông tin đơn hàng và tổng tiền.
+3. Nhấn Xác nhận thanh toán/đặt hàng. | Hệ thống xác nhận đơn hàng, tạo đơn và cập nhật trạng thái thanh toán phù hợp với COD. |  |  | 
+22 | Thanh toán | Thanh toán online thành công | Đơn hàng hợp lệ
+Phương thức: Online
+Cổng thanh toán trả kết quả thành công | 1. Chọn phương thức thanh toán Online.
+2. Hệ thống chuyển đến cổng thanh toán.
+3. Thực hiện giao dịch thành công.
+4. Cổng thanh toán trả kết quả về hệ thống. | Hệ thống cập nhật trạng thái thanh toán thành công và thông báo cho khách hàng. |  |  | 
+23 | Thanh toán | Thanh toán online thất bại | Đơn hàng hợp lệ
+Phương thức: Online
+Cổng thanh toán trả thất bại | 1. Chọn thanh toán Online.
+2. Thực hiện giao dịch không thành công do hết tiền/lỗi kết nối.
+3. Cổng thanh toán trả kết quả thất bại. | Hệ thống hiển thị thông báo lỗi, cho phép khách hàng thanh toán lại hoặc đổi phương thức thanh toán. |  |  | 
+24 | Quản lý đơn hàng | Khách hàng xem danh sách và chi tiết đơn hàng | Khách hàng đã đăng nhập
+Tài khoản có ít nhất 1 đơn hàng | 1. Truy cập mục Quản lý đơn hàng.
+2. Chọn một đơn hàng trong danh sách. | Hệ thống hiển thị danh sách đơn hàng và chi tiết đơn gồm sản phẩm, giá, trạng thái đơn và mã vận đơn. |  |  | 
+25 | Quản lý đơn hàng | Không tìm thấy đơn hàng | Mã đơn hàng không tồn tại hoặc không thuộc khách hàng hiện tại | 1. Truy cập Quản lý đơn hàng.
+2. Tìm kiếm/chọn mã đơn không tồn tại hoặc không có quyền xem. | Hệ thống hiển thị thông báo không tìm thấy đơn hàng hoặc không có quyền truy cập. |  |  | 
+26 | Quản lý đơn hàng | Khách hàng hủy đơn hàng chưa giao | Đơn hàng trạng thái: Chờ xác nhận/Chưa giao | 1. Mở chi tiết đơn hàng chưa giao.
+2. Nhấn “Hủy đơn hàng”.
+3. Xác nhận hủy. | Hệ thống cập nhật trạng thái đơn hàng thành “Đã hủy” và thông báo cho khách hàng. |  |  | 
+27 | Đánh giá sản phẩm | Gửi đánh giá hợp lệ sau khi mua hàng | Khách hàng đã mua sản phẩm
+Đơn hàng hoàn tất
+Số sao: 5
+Nhận xét: Sản phẩm tốt | 1. Truy cập trang chi tiết sản phẩm đã mua.
+2. Chọn Đánh giá sản phẩm.
+3. Nhập số sao và nhận xét.
+4. Gửi đánh giá. | Hệ thống lưu đánh giá và hiển thị công khai trên trang sản phẩm. |  |  | 
+28 | Đánh giá sản phẩm | Khách chưa mua sản phẩm nhưng gửi đánh giá | Khách hàng chưa mua sản phẩm hoặc đơn hàng chưa hoàn tất | 1. Truy cập trang chi tiết sản phẩm chưa mua.
+2. Chọn Đánh giá sản phẩm.
+3. Nhập đánh giá và gửi. | Hệ thống hiển thị thông báo “Bạn cần mua sản phẩm trước khi đánh giá” và không lưu đánh giá. |  |  | 
+29 | Đánh giá sản phẩm | Gửi đánh giá thiếu số sao hoặc nội dung | Số sao: để trống hoặc ngoài khoảng cho phép
+Nội dung: để trống | 1. Mở form đánh giá.
+2. Để trống số sao/nội dung hoặc nhập giá trị không hợp lệ.
+3. Nhấn Gửi đánh giá. | Hệ thống báo lỗi dữ liệu đánh giá không hợp lệ và yêu cầu nhập lại. |  |  | 
+30 | Chat hỗ trợ | Khách hàng gửi câu hỏi và nhận phản hồi | Câu hỏi: “Laptop nào phù hợp học IT tầm 20 triệu?” | 1. Mở hộp chat hỗ trợ.
+2. Nhập câu hỏi.
+3. Gửi câu hỏi. | AI hoặc nhân viên tiếp nhận câu hỏi, trả lời cho khách hàng và cuộc trò chuyện được lưu vào hệ thống. |  |  | 
+31 | Chat hỗ trợ | AI không hiểu câu hỏi và chuyển sang nhân viên | Câu hỏi mơ hồ/ngoài phạm vi: “Cái kia còn không?” | 1. Mở hộp chat hỗ trợ.
+2. Gửi câu hỏi không rõ nghĩa.
+3. AI xử lý yêu cầu. | AI thông báo không hiểu yêu cầu và hệ thống chuyển cuộc trò chuyện sang nhân viên hỗ trợ. |  |  | 
+32 | Xem gợi ý sản phẩm | Hiển thị sản phẩm gợi ý dựa trên hành vi người dùng | Khách hàng đã đăng nhập
+Có lịch sử xem/thêm giỏ/mua | 1. Khách truy cập trang chủ hoặc trang sản phẩm.
+2. Hệ thống ghi nhận hành vi.
+3. Hệ thống gợi ý phân tích dữ liệu. | Hệ thống hiển thị mục “Sản phẩm gợi ý cho bạn” với danh sách sản phẩm phù hợp. |  |  | 
+33 | Xem gợi ý sản phẩm | Người dùng chưa đăng nhập vẫn xem gợi ý | Người dùng chưa đăng nhập
+Hệ thống có dữ liệu sản phẩm bán chạy/sản phẩm mới | 1. Truy cập trang chủ hoặc trang sản phẩm khi chưa đăng nhập.
+2. Quan sát khu vực gợi ý. | Hệ thống hiển thị sản phẩm bán chạy hoặc sản phẩm mới thay cho gợi ý cá nhân hóa. |  |  | 
+34 | Hỗ trợ khách hàng qua chat | Nhân viên tiếp nhận và trả lời yêu cầu khách hàng | Khách hàng gửi yêu cầu hỗ trợ
+Nhân viên đang online | 1. Khách hàng gửi yêu cầu qua chat.
+2. Nhân viên tiếp nhận cuộc trò chuyện.
+3. Nhân viên tư vấn và kết thúc cuộc trò chuyện. | Khách hàng nhận được câu trả lời, thông tin hỗ trợ được lưu lại nếu cần. |  |  | 
+35 | Hỗ trợ khách hàng qua chat | Khách hàng không hài lòng với câu trả lời | Cuộc chat đang diễn ra
+Khách hàng phản hồi không hài lòng | 1. Nhân viên trả lời câu hỏi.
+2. Khách hàng phản hồi không hài lòng.
+3. Nhân viên xử lý theo quy trình. | Nhân viên xin lỗi, đề nghị khách hàng liên hệ lại sau hoặc tiếp tục hỗ trợ phù hợp. |  |  | 
+36 | Hỗ trợ khách hàng qua chat | Nhân viên không đủ thông tin để giải đáp | Yêu cầu khách hàng thiếu dữ liệu hoặc cần bộ phận chuyên môn | 1. Nhân viên tiếp nhận yêu cầu.
+2. Xác định không đủ thông tin để xử lý.
+3. Yêu cầu khách cung cấp thêm thông tin hoặc chuyển bộ phận khác. | Hệ thống/nhân viên ghi nhận yêu cầu bổ sung thông tin hoặc chuyển yêu cầu đến bộ phận phù hợp. |  |  | 
+37 | Nhân viên quản lý đơn hàng | Cập nhật trạng thái đơn hàng thành công | Đơn hàng trạng thái: Chờ xác nhận
+Nhân viên có quyền quản lý đơn hàng | 1. Nhân viên mở chức năng Quản lý đơn hàng.
+2. Chọn đơn cần xử lý.
+3. Xác nhận thông tin.
+4. Đổi trạng thái sang Đang xử lý/Đang giao. | Hệ thống cập nhật trạng thái đơn hàng và thông báo cho khách hàng. |  |  | 
+38 | Nhân viên quản lý đơn hàng | Lỗi khi cập nhật trạng thái đơn hàng | Đơn hàng hợp lệ
+Giả lập lỗi hệ thống khi lưu trạng thái | 1. Nhân viên chọn đơn hàng.
+2. Thay đổi trạng thái.
+3. Nhấn Lưu khi hệ thống xảy ra lỗi. | Hệ thống báo lỗi, trạng thái đơn hàng không bị cập nhật sai và yêu cầu nhân viên thử lại. |  |  | 
+39 | Nhân viên quản lý vận chuyển | Tạo vận đơn thành công | Đơn hàng đã xác nhận và sẵn sàng giao
+Thông tin giao hàng đầy đủ | 1. Nhân viên nhận thông tin đơn hàng.
+2. Tạo vận đơn.
+3. Cập nhật mã vận đơn lên hệ thống. | Vận đơn được tạo, mã vận đơn được lưu và gửi cho khách hàng. |  |  | 
+40 | Nhân viên quản lý vận chuyển | Lỗi khi tạo vận đơn | Đơn hàng sẵn sàng giao
+Giả lập lỗi tạo vận đơn | 1. Nhân viên chọn đơn hàng.
+2. Thực hiện tạo vận đơn.
+3. Hệ thống/cổng vận chuyển trả lỗi. | Nhân viên nhận thông báo lỗi và hệ thống yêu cầu thử lại, không lưu vận đơn sai. |  |  | 
+41 | Nhân viên quản lý kho | Kiểm tra đơn đã xác nhận và cập nhật thông tin giao hàng | Đơn hàng đã thanh toán/xác nhận
+Thông tin giao hàng đầy đủ | 1. Nhân viên mở chức năng Quản lý kho.
+2. Kiểm tra đơn hàng sẵn sàng giao.
+3. Cập nhật thông tin liên quan đến giao hàng/tồn kho. | Thông tin xử lý kho/giao hàng được cập nhật, đảm bảo đơn hàng sẵn sàng chuyển sang vận chuyển. |  |  | 
+42 | Nhân viên quản lý kho | Không thể xử lý đơn do thông tin giao hàng không hợp lệ | Đơn hàng thiếu địa chỉ hoặc thiếu số điện thoại người nhận | 1. Nhân viên mở đơn hàng cần xử lý.
+2. Kiểm tra thông tin giao hàng.
+3. Phát hiện thông tin thiếu/sai. | Hệ thống hiển thị lỗi, không cho chuyển đơn sang bước giao hàng cho đến khi thông tin được chỉnh sửa. |  |  | 
+43 | Admin quản lý sản phẩm | Thêm sản phẩm mới thành công | Tên: Laptop ABC
+Mã SP: LAP001
+Cấu hình, giá, số lượng, hình ảnh hợp lệ | 1. Admin đăng nhập hệ thống quản trị.
+2. Chọn Quản lý sản phẩm.
+3. Chọn Thêm mới.
+4. Nhập đầy đủ thông tin.
+5. Nhấn Lưu. | Hệ thống kiểm tra dữ liệu, lưu sản phẩm mới và hiển thị trên danh sách/cửa hàng. |  |  | 
+44 | Admin quản lý sản phẩm | Lưu sản phẩm thiếu thông tin bắt buộc | Tên sản phẩm: để trống hoặc giá/số lượng để trống | 1. Admin vào form Thêm mới/Chỉnh sửa sản phẩm.
+2. Bỏ trống trường bắt buộc.
+3. Nhấn Lưu. | Hệ thống báo lỗi dữ liệu không hợp lệ và yêu cầu Admin nhập lại. |  |  | 
+45 | Admin quản lý sản phẩm | Thêm sản phẩm trùng mã | Mã SP: LAP001 đã tồn tại | 1. Admin chọn Thêm mới sản phẩm.
+2. Nhập mã sản phẩm đã tồn tại.
+3. Nhấn Lưu. | Hệ thống thông báo sản phẩm đã tồn tại và không cho phép lưu. |  |  | 
+46 | Admin quản lý người dùng | Tìm kiếm và phân quyền/khóa tài khoản thành công | Từ khóa: email người dùng hợp lệ
+Quyền mới: Nhân viên/Khách hàng hoặc trạng thái khóa | 1. Admin truy cập Quản lý người dùng.
+2. Tìm kiếm người dùng.
+3. Thay đổi quyền hoặc khóa tài khoản.
+4. Xác nhận lưu. | Hệ thống cập nhật quyền/trạng thái tài khoản thành công. |  |  | 
+47 | Admin quản lý người dùng | Không tìm thấy người dùng | Từ khóa: email/tên không tồn tại | 1. Admin truy cập Quản lý người dùng.
+2. Nhập từ khóa không có trong hệ thống.
+3. Nhấn Tìm kiếm. | Hệ thống hiển thị thông báo không có kết quả phù hợp. |  |  | 
+48 | Admin quản lý người dùng | Admin tự khóa tài khoản của chính mình | Tài khoản đang đăng nhập là Admin
+Thao tác: khóa chính tài khoản hiện tại | 1. Admin mở thông tin tài khoản của chính mình.
+2. Chọn Khóa tài khoản.
+3. Xác nhận thao tác. | Hệ thống ngăn chặn thao tác tự khóa Admin và giữ nguyên trạng thái tài khoản. |  |  | 
+49 | Admin quản lý đơn hàng | Admin ghi đè trạng thái đơn hàng thành công | Đơn hàng có tranh chấp/lỗi
+Thao tác: Ép hủy hoặc duyệt hoàn tiền | 1. Admin chọn Quản lý đơn hàng.
+2. Tìm đơn hàng cần can thiệp.
+3. Thực hiện ghi đè trạng thái.
+4. Lưu thay đổi. | Hệ thống cập nhật trạng thái, lưu lịch sử thao tác Admin và thông báo cho khách hàng. |  |  | 
+50 | Admin quản lý đơn hàng | Lỗi đồng bộ khi ghi đè trạng thái đơn hàng | Đơn hàng cần cập nhật
+Giả lập lỗi đồng bộ hệ thống | 1. Admin chọn đơn hàng.
+2. Thực hiện ghi đè trạng thái.
+3. Hệ thống xảy ra lỗi khi lưu. | Hệ thống báo lỗi, không lưu trạng thái sai và yêu cầu Admin thử lại. |  |  | 
+51 | Admin quản lý nội dung | Duyệt/ẩn/xóa nội dung thành công | Bình luận/đánh giá/hỏi đáp đang chờ duyệt | 1. Admin truy cập Quản lý nội dung.
+2. Chọn nội dung cần xử lý.
+3. Thực hiện Duyệt hiển thị, Ẩn hoặc Xóa. | Hệ thống cập nhật trạng thái hiển thị nội dung trên trang sản phẩm tương ứng. |  |  | 
+52 | Admin quản lý nội dung | Lỗi thao tác khi mất kết nối | Nội dung chờ duyệt
+Giả lập mất kết nối khi Admin thao tác | 1. Admin chọn nội dung cần duyệt.
+2. Nhấn Duyệt/Ẩn/Xóa.
+3. Mất kết nối trong lúc lưu. | Hệ thống hiển thị thông báo lỗi và yêu cầu tải lại trang, không cập nhật sai trạng thái. |  |  | 
+53 | Admin quản lý AI và gợi ý | Cập nhật tham số gợi ý và kịch bản AI hợp lệ | Trọng số tồn kho: 0.3
+Ưu tiên hàng mới: bật
+Kịch bản AI hợp lệ | 1. Admin truy cập Quản lý AI và gợi ý.
+2. Xem log hội thoại/điểm số gợi ý.
+3. Cập nhật tham số và kịch bản.
+4. Nhấn Lưu. | Hệ thống xác thực và áp dụng cấu hình mới thành công. |  |  | 
+54 | Admin quản lý AI và gợi ý | Tham số cấu hình không hợp lệ | Trọng số: ký tự chữ hoặc giá trị ngoài phạm vi cho phép | 1. Admin mở phần cấu hình gợi ý.
+2. Nhập tham số sai định dạng.
+3. Nhấn Lưu. | Hệ thống cảnh báo trọng số sai định dạng, từ chối lưu và rollback/giữ phiên bản cũ. |  |  | 
+55 | Admin xem báo cáo thống kê | Xem Dashboard và xuất báo cáo khi có dữ liệu | Loại báo cáo: Doanh thu
+Khoảng thời gian: tháng hiện tại có giao dịch | 1. Admin chọn Xem báo cáo thống kê.
+2. Chọn loại báo cáo và khoảng thời gian.
+3. Nhấn Xem báo cáo.
+4. Chọn Xuất Excel/PDF nếu cần. | Hệ thống tính toán dữ liệu, hiển thị biểu đồ Dashboard và xuất file báo cáo thành công. |  |  | 
+56 | Admin xem báo cáo thống kê | Khoảng thời gian không có dữ liệu | Loại báo cáo: Doanh thu
+Khoảng thời gian không phát sinh giao dịch | 1. Admin vào Xem báo cáo thống kê.
+2. Chọn khoảng thời gian không có giao dịch.
+3. Nhấn Xem báo cáo. | Hệ thống hiển thị Dashboard trống và thông báo “Không có dữ liệu”. |  |  | 
+57 | Cổng thanh toán | Xử lý giao dịch online thành công | Yêu cầu thanh toán online hợp lệ
+Số tiền: 15.000.000đ
+Thông tin giao dịch hợp lệ | 1. Khách hàng chọn thanh toán online.
+2. Hệ thống gửi yêu cầu đến cổng thanh toán.
+3. Cổng thanh toán xử lý giao dịch thành công.
+4. Cổng thanh toán phản hồi kết quả. | Cổng thanh toán xác nhận giao dịch thành công, trả mã giao dịch để hệ thống cập nhật đơn hàng. |  |  | 
+58 | Cổng thanh toán | Thanh toán online thất bại do số dư không đủ | Yêu cầu thanh toán online
+Tài khoản/ ví thanh toán không đủ số dư | 1. Hệ thống gửi yêu cầu thanh toán.
+2. Cổng thanh toán xử lý giao dịch.
+3. Giao dịch thất bại do số dư không đủ. | Cổng thanh toán trả kết quả thất bại, hệ thống hiển thị lỗi và đề nghị thử lại/chọn phương thức khác. |  |  | 
+59 | Cổng thanh toán | Hệ thống thanh toán bị gián đoạn | Yêu cầu thanh toán online
+Giả lập cổng thanh toán mất kết nối/timeout | 1. Khách chọn thanh toán online.
+2. Hệ thống gửi yêu cầu đến cổng thanh toán.
+3. Kết nối bị gián đoạn. | Hệ thống hiển thị thông báo lỗi và yêu cầu khách hàng thử lại sau. |  |  | 
+60 | Phản hồi kết quả thanh toán | Cổng thanh toán gửi kết quả thành công về hệ thống | Giao dịch đã xử lý thành công
+Mã giao dịch: PAY123456 | 1. Cổng thanh toán xử lý xong giao dịch.
+2. Gửi kết quả thành công về hệ thống TMĐT.
+3. Hệ thống nhận kết quả. | Hệ thống cập nhật trạng thái thanh toán thành công và thông báo cho khách hàng. |  |  | 
+61 | Phản hồi kết quả thanh toán | Cổng thanh toán gửi kết quả thất bại | Giao dịch thất bại
+Lý do: bị từ chối hoặc hết hạn | 1. Cổng thanh toán xử lý xong giao dịch.
+2. Gửi thông báo lỗi về hệ thống.
+3. Hệ thống nhận kết quả thất bại. | Hệ thống thông báo lỗi, yêu cầu khách hàng thử lại hoặc sử dụng phương thức khác. |  |  | 
+62 | Phản hồi kết quả thanh toán | Giao dịch thành công nhưng lỗi cập nhật đơn hàng | Kết quả thanh toán: thành công
+Giả lập lỗi khi cập nhật đơn hàng | 1. Cổng thanh toán trả thành công.
+2. Hệ thống TMĐT nhận kết quả.
+3. Hệ thống xảy ra lỗi khi cập nhật trạng thái đơn hàng. | Hệ thống báo lỗi và hướng dẫn khách hàng thử lại hoặc liên hệ hỗ trợ; không ghi nhận trạng thái sai. |  |  | 
+63 | Đơn vị vận chuyển | Tiếp nhận vận đơn thành công | Đơn hàng đã xác nhận
+Đơn vị vận chuyển đã được chọn
+Thông tin vận đơn đầy đủ | 1. Hệ thống TMĐT tạo và xác nhận đơn hàng.
+2. Gửi thông tin vận đơn đến đơn vị vận chuyển.
+3. Đơn vị vận chuyển tiếp nhận. | Đơn vị vận chuyển nhận thông tin vận đơn và bắt đầu xử lý giao hàng. |  |  | 
+64 | Đơn vị vận chuyển | Thông tin vận đơn không hợp lệ | Vận đơn thiếu địa chỉ/số điện thoại/mã đơn | 1. Hệ thống gửi thông tin vận đơn cho đơn vị vận chuyển.
+2. Đơn vị vận chuyển kiểm tra dữ liệu.
+3. Phát hiện thông tin không đầy đủ hoặc sai. | Đơn vị vận chuyển thông báo lỗi và yêu cầu hệ thống TMĐT chỉnh sửa thông tin vận đơn. |  |  | 
+65 | Cập nhật trạng thái giao hàng | Đơn vị vận chuyển cập nhật trạng thái thành công | Mã vận đơn hợp lệ
+Trạng thái mới: Đang giao/Đã giao/Hoàn tất | 1. Đơn vị vận chuyển cập nhật trạng thái giao hàng.
+2. Hệ thống TMĐT nhận thông tin.
+3. Hệ thống xác nhận trạng thái. | Trạng thái giao hàng được cập nhật và hệ thống thông báo cho khách hàng. |  |  | 
+66 | Cập nhật trạng thái giao hàng | Lỗi cập nhật trạng thái giao hàng | Mã vận đơn hợp lệ
+Giả lập lỗi hệ thống khi cập nhật | 1. Đơn vị vận chuyển gửi trạng thái giao hàng mới.
+2. Hệ thống xảy ra lỗi khi lưu trạng thái. | Hệ thống thông báo lỗi cho đơn vị vận chuyển và yêu cầu thử lại. |  |  | 
+67 | Trợ lý AI tư vấn chọn sản phẩm | AI hỏi thêm tiêu chí và gợi ý 3–5 sản phẩm phù hợp | Câu hỏi: “Mình cần laptop học IT tầm 20 triệu”
+Tiêu chí bổ sung: RAM 16GB, SSD 512GB, ưu tiên mỏng nhẹ | 1. Khách hàng mở chat AI.
+2. Gửi nhu cầu mua sản phẩm.
+3. AI hỏi thêm tiêu chí.
+4. Khách hàng trả lời.
+5. AI truy vấn sản phẩm phù hợp. | AI trả về 3–5 sản phẩm, kèm so sánh nhanh, lý do đề xuất và link xem sản phẩm. |  |  | 
+68 | Trợ lý AI tư vấn chọn sản phẩm | Khách hàng không cung cấp đủ thông tin | Câu hỏi: “Tư vấn laptop cho mình”
+Không nêu ngân sách/nhu cầu | 1. Khách hàng hỏi AI với thông tin mơ hồ.
+2. AI phân tích yêu cầu. | AI hỏi thêm tiêu chí hoặc đề xuất mặc định theo sản phẩm bán chạy trong tầm phổ biến và hỏi lại khách hàng. |  |  | 
+69 | Trợ lý AI tư vấn chọn sản phẩm | Không có sản phẩm đúng ngân sách | Nhu cầu: laptop gaming cấu hình cao
+Ngân sách: 5 triệu | 1. Khách hàng gửi nhu cầu và ngân sách.
+2. AI tìm sản phẩm theo tiêu chí.
+3. Không có sản phẩm phù hợp. | AI thông báo không có sản phẩm đúng ngân sách, đề xuất mức giá gần nhất hoặc lựa chọn hạ cấu hình/tăng ngân sách. |  |  | 
+70 | Trợ lý AI tư vấn chọn sản phẩm | Sản phẩm được gợi ý đang hết hàng | Sản phẩm trong danh sách gợi ý có trạng thái: Hết hàng | 1. Khách hàng hỏi AI tư vấn.
+2. AI truy vấn sản phẩm phù hợp.
+3. Một sản phẩm gợi ý hết hàng. | AI chuyển sang gợi ý sản phẩm tương tự hoặc hướng dẫn đặt trước nếu phù hợp. |  |  | 
+71 | Trợ lý AI gợi ý tương tự khi hết hàng | AI đề xuất sản phẩm thay thế cho sản phẩm hết hàng | Sản phẩm A: Hết hàng
+Catalog có sản phẩm tương tự cùng phân khúc/hiệu năng/giá | 1. Khách hỏi về sản phẩm A.
+2. AI kiểm tra tồn kho và xác định sản phẩm hết hàng.
+3. AI tìm sản phẩm thay thế. | AI đề xuất 3–5 sản phẩm thay thế, nêu điểm khác biệt và hướng dẫn đặt trước nếu có. |  |  | 
+72 | Trợ lý AI gợi ý tương tự khi hết hàng | Khách muốn giữ đúng model đang hết hàng | Sản phẩm A: Hết hàng/Sắp về
+Khách yêu cầu đúng model | 1. Khách hỏi về sản phẩm A.
+2. AI thông báo sản phẩm hết hàng.
+3. Khách yêu cầu giữ đúng model. | AI ưu tiên hướng dẫn đặt trước, nêu thời gian dự kiến nếu có hoặc đề nghị để lại nhu cầu. |  |  | 
+73 | Trợ lý AI gợi ý tương tự khi hết hàng | Không có sản phẩm thay thế phù hợp | Sản phẩm A: Hết hàng
+Catalog không có sản phẩm tương đồng | 1. Khách hỏi về sản phẩm A.
+2. AI tìm sản phẩm thay thế.
+3. Không tìm thấy sản phẩm phù hợp. | AI thông báo không có sản phẩm thay thế và đề nghị đặt trước hoặc để lại thông tin nhu cầu. |  |  | 
+74 | Hệ thống gợi ý sản phẩm | Tạo danh sách đề xuất cá nhân hóa thành công | Có dữ liệu sản phẩm và hành vi Xem/Thêm giỏ/Mua của khách hàng | 1. Khách mở trang chủ hoặc trang chi tiết sản phẩm.
+2. Hệ thống ghi nhận hành vi.
+3. Recommendation Engine tính toán danh sách đề xuất. | Hệ thống trả danh sách sản phẩm đề xuất, điểm số gợi ý và hiển thị khối “Bạn có thể thích”. |  |  | 
+75 | Hệ thống gợi ý sản phẩm | Người dùng chưa đăng nhập | Người dùng chưa đăng nhập
+Có dữ liệu top bán chạy/theo danh mục | 1. Người dùng truy cập trang chủ hoặc trang chi tiết.
+2. Hệ thống kiểm tra trạng thái đăng nhập. | Hệ thống hiển thị gợi ý theo xu hướng/top bán chạy theo danh mục thay vì cá nhân hóa. |  |  | 
+76 | Hệ thống gợi ý sản phẩm | Dữ liệu hành vi quá ít | Khách mới, có rất ít lịch sử hành vi
+Sản phẩm đang xem có thông tin cấu hình | 1. Khách truy cập trang chi tiết sản phẩm.
+2. Recommendation Engine kiểm tra dữ liệu hành vi.
+3. Dữ liệu hành vi không đủ. | Hệ thống ưu tiên gợi ý theo content-based dựa trên sản phẩm đang xem. |  |  | 
+77 | Hệ thống gợi ý khi hết hàng | Hiển thị sản phẩm thay thế khi sản phẩm hết hàng | Sản phẩm A: Hết hàng/Sắp về
+Catalog có sản phẩm tương đồng | 1. Khách mở trang sản phẩm A.
+2. Hệ thống phát hiện sản phẩm hết hàng.
+3. Recommendation Engine tìm sản phẩm tương tự. | Hệ thống hiển thị danh sách “Sản phẩm thay thế” và lưu log gợi ý. |  |  | 
+78 | Hệ thống gợi ý khi hết hàng | Ưu tiên phiên bản mới hơn của sản phẩm | Sản phẩm A hết hàng
+Catalog có phiên bản mới hơn của sản phẩm A | 1. Khách mở trang sản phẩm hết hàng.
+2. Recommendation Engine tìm sản phẩm thay thế.
+3. Phát hiện phiên bản mới hơn. | Hệ thống ưu tiên đưa phiên bản mới hơn lên đầu danh sách thay thế. |  |  | 
+79 | Hệ thống gợi ý khi hết hàng | Không có sản phẩm thay thế | Sản phẩm A hết hàng
+Catalog không có sản phẩm tương đồng | 1. Khách mở trang sản phẩm A.
+2. Hệ thống tìm sản phẩm thay thế.
+3. Không có kết quả phù hợp. | Hệ thống hiển thị lựa chọn đặt trước hoặc thông báo đăng ký nhận tin khi có hàng. |  |  | 
+
+===== SHEET: Tên đề tài =====
+Tên đề tài : | Hệ thống thương mại điện tử bán thiết bị công nghệ tích hợp hệ thống gợi ý và trợ lý AI
+
+Sinh viên thực hiện: | Trịnh Công Võ - B22DCCN909
+Mai Quốc Bình - B22DCCN082
+Đào Trọng Đoàn - B22DCCN213
+Nguyễn Quyết Thắng - B22DCCN813
+Lớp: | INT1446 - 20252 - 05

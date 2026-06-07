@@ -1,0 +1,11 @@
+KẾT QUẢ TEST TRỰC TIẾP — 6 TC TRƯỚC ĐÂY GHI "KIỂM TRA LẠI"
+Thời gian: 24/5/2026
+
+TC34 | Pass | Gửi trạng thái INVALID_XYZ → HTTP 400, trạng thái đơn không đổi.
+TC35 | Fail | POST /api/products → lỗi DB: Unknown column 'created_by'. Cần sửa schema hoặc test trên UI sau khi fix DB.
+TC37 | Fail | Không kiểm tra được trùng SKU vì tạo SP lỗi cùng nguyên nhân created_by.
+TC42 | Fail | Đơn #920 CANCELLED vẫn đổi sang PROCESSING (HTTP 200) — hệ thống không chặn ghi đè sai.
+TC44 | Pass | DELETE review #999999 → 404; không token → 401 (xử lý lỗi đúng).
+TC46 | Fail | Dashboard không có chọn khoảng ngày / thông báo "Không có dữ liệu".
+
+Cách tự chạy lại: node testcase/run_kiem_tra_lai.mjs

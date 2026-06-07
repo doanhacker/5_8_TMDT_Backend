@@ -1,0 +1,27 @@
+TEST CASE 40
+==================
+Chức năng    : Admin quản lý người dùng
+Mô tả        : Admin tự khóa tài khoản của chính mình
+
+Dữ liệu đầu vào:
+Tài khoản đang đăng nhập là Admin
+Thao tác: khóa chính tài khoản hiện tại
+
+Bước thực hiện (theo file testcase):
+1. Admin mở thông tin tài khoản của chính mình.
+2. Chọn Khóa tài khoản.
+3. Xác nhận thao tác.
+
+Kết quả mong đợi:
+Hệ thống ngăn chặn thao tác tự khóa Admin và giữ nguyên trạng thái tài khoản.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+PATCH khóa chính admin (id 905): HTTP 401 — Thiếu token xác thực
+
+Cách kiểm tra trên hệ thống:
+Admin → Khách hàng → tìm email admin → thử Khóa. Kỳ vọng: chặn hoặc admin không nằm trong list KH.
+
+Ghi chú:
+Admin có thể không có trong danh sách customers (chỉ role CUSTOMER).

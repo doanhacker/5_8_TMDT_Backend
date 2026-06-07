@@ -8,8 +8,13 @@ import * as productApi from "../services/productApi"
 import * as orderApi from "../services/orderApi"
 import * as inventoryApi from "../services/inventoryApi"
 import * as adminApi from "../services/adminApi"
+import * as analyticsApi from "../services/analyticsApi"
+import {
+  exportAnalyticsReportExcel,
+  exportAnalyticsReportPdf,
+} from "../utils/analyticsReportExport"
 import { buildApiUrl, getImageUrl } from "../config/api"
-import { getAuthToken } from "../lib/authToken"
+import { getAuthToken, notifyUnauthorized } from "../lib/authTokenEnhanced"
 import { getRealtimeClient } from "../lib/realtimeClient"
 import {
   FiBarChart2,
@@ -89,6 +94,22 @@ const initialStaff = [
   { id: "S001", name: "Admin Tổng", role: "admin", email: "admin@laptopshop.vn" },
   { id: "S002", name: "Nhân viên hệ thống", role: "staff", email: "staff@laptopshop.vn" },
 ]
+
+const emptyAnalyticsOverview = {
+  revenue_today: 0,
+  revenue_month: 0,
+  revenue_year: 0,
+  orders_pending: 0,
+  orders_completed: 0,
+  orders_cancelled: 0,
+  cancel_rate: 0,
+  avg_order_value: 0,
+  total_customers: 0,
+  new_customers_month: 0,
+  low_stock_count: 0,
+  out_of_stock_count: 0,
+  avg_rating: 0,
+}
 
 const createEmptyProductForm = () => ({
   name: "",
@@ -248,6 +269,20 @@ export default function Admin() {
   const [loadingBrands, setLoadingBrands] = useState(false)
   const [loadingCategories, setLoadingCategories] = useState(false)
   const activeDeviceTypeRef = useRef(productForm.deviceType)
+  const [analyticsOverview, setAnalyticsOverview] = useState(emptyAnalyticsOverview)
+  const [revenueHistory, setRevenueHistory] = useState([])
+  const [topProducts, setTopProducts] = useState([])
+  const [cancelReasons, setCancelReasons] = useState([])
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [analyticsError, setAnalyticsError] = useState("")
+  const [reportType, setReportType] = useState("revenue")
+  const [reportRange, setReportRange] = useState("current_month")
+  const [reportDateFrom, setReportDateFrom] = useState("")
+  const [reportDateTo, setReportDateTo] = useState("")
+  const [reportHasData, setReportHasData] = useState(false)
+  const [reportPeriodLabel, setReportPeriodLabel] = useState("")
+  const [reportPayload, setReportPayload] = useState(null)
+  const [exportNotice, setExportNotice] = useState("")
 
   useEffect(() => {
     activeDeviceTypeRef.current = productForm.deviceType
@@ -255,15 +290,17 @@ export default function Admin() {
 
   // Fetch staff users từ API khi vào module "staff"
   useEffect(() => {
+    if (!user || !isAdmin()) return
     if (activeModule === "staff") {
       fetchStaffUsers()
     }
-  }, [activeModule])
+  }, [activeModule, user])
 
   // Fetch brands and categories whenever product device type changes.
   useEffect(() => {
+    if (!user || !isAdmin()) return
     fetchBrandsAndCategories(productForm.deviceType)
-  }, [productForm.deviceType])
+  }, [user, productForm.deviceType])
 
   useEffect(() => {
     if (!productNotice) return undefined
@@ -385,6 +422,8 @@ export default function Admin() {
           setStaffUsers(data.data)
           console.log("✅ Đã tải danh sách nhân viên:", data.data)
         }
+      } else if (response.status === 401) {
+        notifyUnauthorized()
       } else {
         console.error("Lỗi:", response.statusText)
         // Giữ dữ liệu initial nếu lỗi
@@ -484,6 +523,7 @@ export default function Admin() {
   }
 
   useEffect(() => {
+    if (!user || !isAdmin()) return
     if (activeModule === "orders" || activeModule === "dashboard") {
       loadOrders()
     }
@@ -496,7 +536,90 @@ export default function Admin() {
     if (activeModule === "content" || activeModule === "dashboard") {
       loadComments()
     }
-  }, [activeModule])
+  }, [activeModule, user])
+
+  useEffect(() => {
+    if (!user || !isAdmin()) return undefined
+    if (activeModule !== "dashboard") return undefined
+
+    const canLoadReport = reportRange !== "custom" || (reportDateFrom && reportDateTo)
+    let cancelled = false
+
+    const loadDashboardAnalytics = async () => {
+      setAnalyticsLoading(true)
+      setAnalyticsError("")
+      setExportNotice("")
+
+      try {
+        const overviewPromise = analyticsApi.getAnalyticsOverview()
+        const cancelPromise = analyticsApi.getAnalyticsCancelReasons()
+        const reportPromise = canLoadReport
+          ? analyticsApi.getAnalyticsReport({
+              report_type: reportType,
+              range: reportRange,
+              ...(reportRange === "custom"
+                ? { date_from: reportDateFrom, date_to: reportDateTo }
+                : {}),
+            })
+          : null
+
+        const [overviewRes, cancelRes, reportRes] = await Promise.all([
+          overviewPromise,
+          cancelPromise,
+          reportPromise,
+        ])
+
+        if (cancelled) return
+
+        setAnalyticsOverview(overviewRes?.data || emptyAnalyticsOverview)
+        setCancelReasons(Array.isArray(cancelRes?.data) ? cancelRes.data : [])
+
+        if (reportRes?.data) {
+          const payload = reportRes.data
+          setReportPayload(payload)
+          setReportHasData(Boolean(payload?.has_data))
+          setReportPeriodLabel(payload?.period?.label || "")
+          setRevenueHistory(Array.isArray(payload?.chart_data) ? payload.chart_data : [])
+          setTopProducts(Array.isArray(payload?.top_products) ? payload.top_products : [])
+        } else if (reportRange === "custom" && (!reportDateFrom || !reportDateTo)) {
+          setReportPayload(null)
+          setReportHasData(false)
+          setReportPeriodLabel("")
+          setRevenueHistory([])
+          setTopProducts([])
+        }
+      } catch (error) {
+        if (cancelled) return
+        console.error("Error loading dashboard analytics:", error)
+        setAnalyticsError(error.message || "Không thể tải báo cáo thống kê")
+      } finally {
+        if (!cancelled) setAnalyticsLoading(false)
+      }
+    }
+
+    loadDashboardAnalytics()
+    return () => {
+      cancelled = true
+    }
+  }, [activeModule, user, reportType, reportRange, reportDateFrom, reportDateTo])
+
+  const handleExportExcel = () => {
+    try {
+      exportAnalyticsReportExcel(reportPayload)
+      setExportNotice("Đã xuất báo cáo Excel (.csv) thành công.")
+    } catch (error) {
+      setExportNotice(error.message || "Không thể xuất Excel.")
+    }
+  }
+
+  const handleExportPdf = () => {
+    try {
+      exportAnalyticsReportPdf(reportPayload)
+      setExportNotice("Đã mở hộp thoại in PDF. Chọn 'Lưu thành PDF' để tải file.")
+    } catch (error) {
+      setExportNotice(error.message || "Không thể xuất PDF.")
+    }
+  }
 
   const lowStockItems = useMemo(() => inventory, [inventory])
 
@@ -514,24 +637,21 @@ export default function Admin() {
     )
   }, [products, searchTerm, isScopedAdmin, adminScope])
 
-  const revenueSummary = useMemo(() => {
-    const completed = orders.filter((order) => order.status === "COMPLETED")
-    const processing = orders.filter((order) => order.status !== "CANCELLED")
-    return {
-      day: 125000000,
-      month: 2480000000,
-      year: 19800000000,
-      brandAsus: 62,
-      priceSegmentMid: 47,
-      avgOrder: processing.length ? processing.reduce((sum, order) => sum + order.total, 0) / processing.length : 0,
-      cancelRate: orders.length ? Math.round((orders.filter((order) => order.status === "CANCELLED").length / orders.length) * 100) : 0,
-      returnRate: 36,
-      completedOrders: completed.length,
-      preOrders: orders.filter((order) => order.preOrder).length,
-      preOrderCancelRate: 20,
-      waitingAverageDays: 4,
-    }
-  }, [orders])
+  const revenueSummary = useMemo(() => ({
+    day: analyticsOverview.revenue_today,
+    month: analyticsOverview.revenue_month,
+    year: analyticsOverview.revenue_year,
+    avgOrder: analyticsOverview.avg_order_value,
+    cancelRate: analyticsOverview.cancel_rate,
+    completedOrders: analyticsOverview.orders_completed,
+    ordersPending: analyticsOverview.orders_pending,
+    newCustomersMonth: analyticsOverview.new_customers_month,
+    totalCustomers: analyticsOverview.total_customers,
+    lowStockCount: analyticsOverview.low_stock_count,
+    outOfStockCount: analyticsOverview.out_of_stock_count,
+    avgRating: analyticsOverview.avg_rating,
+    preOrders: orders.filter((order) => order.preOrder).length,
+  }), [analyticsOverview, orders])
 
   const recommendationStats = {
     topSuggested: ["ASUS TUF Gaming F16", "ASUS Vivobook 16X", "ASUS ROG Strix G16"],
@@ -1135,6 +1255,25 @@ export default function Admin() {
     if (activeModule === "dashboard") return (
       <AdminDashboard
         revenueSummary={revenueSummary}
+        revenueHistory={revenueHistory}
+        topProducts={topProducts}
+        cancelReasons={cancelReasons}
+        reportType={reportType}
+        onReportTypeChange={setReportType}
+        reportRange={reportRange}
+        onReportRangeChange={setReportRange}
+        reportDateFrom={reportDateFrom}
+        onReportDateFromChange={setReportDateFrom}
+        reportDateTo={reportDateTo}
+        onReportDateToChange={setReportDateTo}
+        onExportExcel={handleExportExcel}
+        onExportPdf={handleExportPdf}
+        reportHasData={reportHasData}
+        reportPeriodLabel={reportPeriodLabel}
+        reportPayload={reportPayload}
+        exportNotice={exportNotice}
+        analyticsLoading={analyticsLoading}
+        analyticsError={analyticsError}
         orders={orders}
         products={products}
         customers={customers}

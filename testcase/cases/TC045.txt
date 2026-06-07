@@ -1,0 +1,30 @@
+TEST CASE 45
+==================
+Chức năng    : Admin xem báo cáo thống kê
+Mô tả        : Xem Dashboard và xuất báo cáo khi có dữ liệu
+
+Dữ liệu đầu vào:
+Loại báo cáo: Doanh thu
+Khoảng thời gian: tháng hiện tại có giao dịch
+
+Bước thực hiện (theo file testcase):
+1. Admin chọn Xem báo cáo thống kê.
+2. Chọn loại báo cáo và khoảng thời gian.
+3. Nhấn Xem báo cáo.
+4. Chọn Xuất Excel/PDF nếu cần.
+
+Kết quả mong đợi:
+Hệ thống tính toán dữ liệu, hiển thị biểu đồ Dashboard và xuất file báo cáo thành công.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+Dashboard FE: /admin có biểu đồ. API orders: 11 đơn. Chưa có nút Xuất Excel/PDF.
+
+Cách kiểm tra trên hệ thống:
+1. /admin (Dashboard)
+2. Xem biểu đồ doanh thu/đơn
+3. Tìm nút Export (chưa có → Partial)
+
+Ghi chú:
+(không)

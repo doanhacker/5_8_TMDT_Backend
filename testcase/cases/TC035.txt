@@ -1,0 +1,33 @@
+TEST CASE 35
+==================
+Chức năng    : Admin quản lý sản phẩm
+Mô tả        : Thêm sản phẩm mới thành công
+
+Dữ liệu đầu vào:
+Tên: Laptop ABC
+Mã SP: LAP001
+Cấu hình, giá, số lượng, hình ảnh hợp lệ
+
+Bước thực hiện (theo file testcase):
+1. Admin đăng nhập hệ thống quản trị.
+2. Chọn Quản lý sản phẩm.
+3. Chọn Thêm mới.
+4. Nhập đầy đủ thông tin.
+5. Nhấn Lưu.
+
+Kết quả mong đợi:
+Hệ thống kiểm tra dữ liệu, lưu sản phẩm mới và hiển thị trên danh sách/cửa hàng.
+
+--- KẾT QUẢ KIỂM THỬ ---
+Trạng thái (Pass/Fail): Partial
+Kết quả thực tế:
+Không có quyền admin token.
+
+Cách kiểm tra trên hệ thống:
+1. Login admin.test@laptop-shop.com / Admin@123
+2. /admin → Sản phẩm → Thêm mới
+3. Điền đủ field + ảnh → Lưu
+4. Kiểm tra SP trên /laptop
+
+Ghi chú:
+API: POST /api/products (multipart).
