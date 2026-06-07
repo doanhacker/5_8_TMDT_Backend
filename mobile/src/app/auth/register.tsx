@@ -5,20 +5,35 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { authApi } from '../../api/authApi';
 import { Colors, Spacing, Radius, Gradients, Shadows } from '../../constants/theme';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export default function RegisterScreen() {
   const router = useRouter();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const setAuth = useAuthStore((state) => state.setAuth);
+
   const handleRegister = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
-      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
+      Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin bắt buộc');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Lỗi', 'Email không hợp lệ');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
 
@@ -29,10 +44,11 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const res = await authApi.register({ full_name: fullName, email, password });
-      if (res.success || res.message) {
-        Alert.alert('Thành công', 'Đăng ký tài khoản thành công! Vui lòng đăng nhập.');
-        router.replace('/auth/login');
+      const res = await authApi.register({ full_name: fullName, email, password, phone_number: phoneNumber });
+      if (res.success && res.data) {
+        setAuth(res.data.user, res.data.token);
+        Alert.alert('Thành công', 'Đăng ký tài khoản thành công!');
+        router.replace('/(tabs)');
       } else {
         Alert.alert('Lỗi', res.message || 'Đăng ký thất bại');
       }
@@ -82,6 +98,21 @@ export default function RegisterScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Số điện thoại (Tùy chọn)</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="call-outline" size={20} color={Colors.light.textSecondary} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Nhập số điện thoại"
+                placeholderTextColor={Colors.light.textSecondary}
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                keyboardType="phone-pad"
               />
             </View>
           </View>

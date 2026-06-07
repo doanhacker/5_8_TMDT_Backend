@@ -8,7 +8,7 @@ const extractBearerToken = (req) => {
 };
 
 const resolveUserFromToken = async (token) => {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     const userId = decoded.user_id || decoded.id || decoded.userId;
     const tokenVersion = decoded.token_version;
 

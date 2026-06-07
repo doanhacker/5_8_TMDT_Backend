@@ -57,3 +57,15 @@ export const updateOrderAddress = async (id, payload) => {
     body: JSON.stringify(payload),
   })
 }
+
+export const getRevenueStats = async (startDate, endDate, productId = null) => {
+  const params = { startDate, endDate }
+  if (productId) params.productId = productId
+  const query = new URLSearchParams(params).toString()
+  return requestJson(`${API_BASE}/revenue/stats?${query}`, { method: 'GET' })
+}
+
+export const getTopProducts = async (startDate, endDate, limit = 10) => {
+  const query = new URLSearchParams({ startDate, endDate, limit }).toString()
+  return requestJson(`${API_BASE}/top-products?${query}`, { method: 'GET' })
+}

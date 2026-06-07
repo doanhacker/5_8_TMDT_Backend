@@ -444,6 +444,83 @@ const Order = {
             [paymentId, orderId]
         );
         return result.affectedRows;
+    },
+
+    /**
+     * Thống kê doanh thu theo thời gian (Hỗ trợ lọc theo productId).
+     * @param {string} startDate - Ngày bắt đầu (YYYY-MM-DD)
+     * @param {string} endDate - Ngày kết thúc (YYYY-MM-DD)
+     * @param {number|null} productId - ID sản phẩm (Tùy chọn)
+     * @returns {Promise<Array>} Mảng dữ liệu thống kê doanh thu theo ngày
+     */
+    getRevenueStatistics: async (startDate, endDate, productId = null) => {
+        let query;
+        let params = [startDate, endDate];
+
+        if (productId) {
+            query = `
+                SELECT 
+                    DATE(o.order_date) as date, 
+                    SUM(od.price_at_purchase * od.quantity) as revenue,
+                    SUM(od.quantity) as quantity_sold,
+                    COUNT(DISTINCT o.order_id) as orders_count
+                FROM orders o
+                JOIN order_details od ON o.order_id = od.order_id
+                JOIN product_variants pv ON od.variant_id = pv.variant_id
+                WHERE o.status = 'COMPLETED'
+                  AND DATE(o.order_date) >= ?
+                  AND DATE(o.order_date) <= ?
+                  AND pv.product_id = ?
+                GROUP BY DATE(o.order_date)
+                ORDER BY DATE(o.order_date) ASC
+            `;
+            params.push(productId);
+        } else {
+            query = `
+                SELECT 
+                    DATE(order_date) as date, 
+                    SUM(total_amount) as revenue,
+                    SUM(
+                        (SELECT SUM(quantity) FROM order_details WHERE order_id = orders.order_id)
+                    ) as quantity_sold,
+                    COUNT(order_id) as orders_count
+                FROM orders
+                WHERE status = 'COMPLETED'
+                  AND DATE(order_date) >= ?
+                  AND DATE(order_date) <= ?
+                GROUP BY DATE(order_date)
+                ORDER BY DATE(order_date) ASC
+            `;
+        }
+        
+        const [rows] = await db.query(query, params);
+        return rows;
+    },
+
+    /**
+     * Lấy danh sách Top sản phẩm bán chạy nhất trong khoảng thời gian.
+     */
+    getTopSellingProducts: async (startDate, endDate, limit = 10) => {
+        const query = `
+            SELECT 
+                p.product_id,
+                p.product_name,
+                SUM(od.quantity) as quantity_sold,
+                SUM(od.price_at_purchase * od.quantity) as revenue,
+                (SELECT SUM(stock_quantity) FROM product_variants WHERE product_id = p.product_id) as total_stock
+            FROM order_details od
+            JOIN orders o ON od.order_id = o.order_id
+            JOIN product_variants pv ON od.variant_id = pv.variant_id
+            JOIN products p ON pv.product_id = p.product_id
+            WHERE o.status = 'COMPLETED'
+              AND DATE(o.order_date) >= ?
+              AND DATE(o.order_date) <= ?
+            GROUP BY p.product_id
+            ORDER BY quantity_sold DESC, revenue DESC
+            LIMIT ?
+        `;
+        const [rows] = await db.query(query, [startDate, endDate, limit]);
+        return rows;
     }
 };
 

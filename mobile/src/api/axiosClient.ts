@@ -50,7 +50,8 @@ axiosClient.interceptors.response.use(
     // Xử lý các mã lỗi ở đây (vd: 401 Unauthorized -> Đẩy về trang đăng nhập)
     if (error.response?.status === 401) {
       console.log('Token hết hạn hoặc không hợp lệ!');
-      // Có thể emit event hoặc gọi action logout của store tại đây
+      // Gọi action logout của store để xóa token lỗi khỏi SecureStore
+      useAuthStore.getState().logout();
     }
     return Promise.reject(error);
   }

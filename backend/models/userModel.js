@@ -1,13 +1,12 @@
 const pool = require('../config/db');
 
 const User = {
-    // Tạo user mới
     create: async (userData, executor = pool) => {
         const { email, password_hash, full_name, phone_number } = userData;
         const [result] = await executor.execute(
             `INSERT INTO users (email, password_hash, full_name, phone_number, status) 
              VALUES (?, ?, ?, ?, 'ACTIVE')`,
-            [email, password_hash, full_name, phone_number]
+            [email, password_hash, full_name, phone_number !== undefined ? phone_number : null]
         );
         return result.insertId;
     },

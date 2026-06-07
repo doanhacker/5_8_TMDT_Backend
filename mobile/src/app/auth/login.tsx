@@ -32,7 +32,7 @@ export default function LoginScreen() {
         
         setAuth(user, token);
         Alert.alert('Thành công', 'Đăng nhập thành công!');
-        router.replace('/profile');
+        router.replace('/(tabs)/profile');
       } else {
         Alert.alert('Lỗi', res.message || 'Đăng nhập thất bại');
       }

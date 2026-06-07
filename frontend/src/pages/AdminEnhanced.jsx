@@ -26,6 +26,7 @@ import {
   FiImage,
   FiGift,
   FiBell,
+  FiDollarSign,
 } from "react-icons/fi"
 import "../styles/Admin.css"
 

@@ -14,15 +14,15 @@ export default function ProductDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { width } = useWindowDimensions();
-  
+
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
-  
+
   const addToCart = useCartStore((state) => state.addToCart);
-  
+
   const favoriteItems = useFavoriteStore((state) => state.items);
   const addFavorite = useFavoriteStore((state) => state.addFavorite);
   const removeFavorite = useFavoriteStore((state) => state.removeFavorite);
@@ -63,27 +63,49 @@ export default function ProductDetailScreen() {
   }
 
   const currentVariant = product.variants?.find((v: any) => v.variant_id === selectedVariantId) || product.variants?.[0];
-  
+
   const displayPrice = currentVariant?.discount_price || currentVariant?.original_price || product.min_price || product.price || 0;
   const originalPrice = currentVariant?.original_price || product.max_price || product.oldPrice || product.price || 0;
   const variantId = currentVariant?.variant_id || product.product_id;
   const stockQty = currentVariant?.stock_quantity || product.total_stock || 0;
 
-  const variantImages = product.images?.filter((img: any) => img.variant_id === variantId) || [];
-  let imageUrl = product.primary_product_image_url || 'https://via.placeholder.com/400';
-  if (variantImages.length > 0) {
-    imageUrl = variantImages[0].image_url;
+  let imageUrl = 'https://via.placeholder.com/400';
+
+  if (currentVariant && currentVariant.images && currentVariant.images.length > 0) {
+    // Ưu tiên lấy ảnh của phiên bản (variant)
+    imageUrl = currentVariant.images[0].image_url;
+  } else if (product.images && product.images.length > 0) {
+    // Nếu không có ảnh phiên bản, lấy ảnh chính của sản phẩm
+    imageUrl = product.images[0].image_url;
   }
-  if (imageUrl && imageUrl.startsWith('/uploads')) {
-    imageUrl = `http://192.168.1.13:5000${imageUrl}`;
+
+  // Use BASE_URL from axiosClient instead of hardcoding IP
+  if (imageUrl) {
+    // Nếu trong DB lưu sẵn http://localhost... thì thiết bị mobile sẽ không truy cập được, cần đổi sang IP LAN
+    if (imageUrl.includes('localhost')) {
+      imageUrl = imageUrl.replace('localhost', '192.168.1.13');
+    }
+    // Chuẩn hóa gạch chéo ngược trên Windows
+    imageUrl = imageUrl.replace(/\\/g, '/');
+
+    if (imageUrl.startsWith('/uploads')) {
+      // BASE_URL is typically something like http://192.168.1.13:5000/api
+      const serverUrl = 'http://192.168.1.13:5000'; // Fallback
+      imageUrl = `${serverUrl}${imageUrl}`;
+    } else if (imageUrl.startsWith('uploads/')) {
+      const serverUrl = 'http://192.168.1.13:5000';
+      imageUrl = `${serverUrl}/${imageUrl}`;
+    }
   }
+
+  // console.log('DEBUG_IMAGE_URL:', imageUrl);
 
   const handleAddToCart = () => {
     if (stockQty < 1) {
       Alert.alert('Hết hàng', 'Sản phẩm này hiện đang tạm hết hàng.');
       return;
     }
-    
+
     let configSpec = '';
     if (currentVariant) {
       configSpec = [currentVariant.color_name, currentVariant.ram_gb ? `${currentVariant.ram_gb}GB RAM` : null, currentVariant.storage_gb ? `${currentVariant.storage_gb}GB ROM` : null].filter(Boolean).join(' - ');
@@ -133,45 +155,40 @@ export default function ProductDetailScreen() {
     }
   };
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity onPress={toggleFavorite} style={{ padding: Spacing.sm }}>
-          <Ionicons name={isFav ? "heart" : "heart-outline"} size={24} color={isFav ? Colors.light.danger : Colors.light.text} />
-        </TouchableOpacity>
-      )
-    });
-  }, [navigation, isFav, product]);
-
   return (
     <>
-      <Stack.Screen options={{ 
+      <Stack.Screen options={{
         title: 'Chi tiết sản phẩm',
         headerStyle: { backgroundColor: Colors.light.backgroundElement },
         headerTintColor: Colors.light.text,
+        headerRight: () => (
+          <TouchableOpacity onPress={toggleFavorite} style={{ padding: Spacing.sm }}>
+            <Ionicons name={isFav ? "heart" : "heart-outline"} size={24} color={isFav ? Colors.light.danger : Colors.light.text} />
+          </TouchableOpacity>
+        )
       }} />
       <View style={styles.container}>
         <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.imageContainer}>
-            <Image 
-              source={{ uri: imageUrl }} 
-              style={[styles.image, { width: width, height: width }]} 
-              resizeMode="contain" 
+            <Image
+              source={{ uri: imageUrl }}
+              style={[styles.image, { width: width, height: width }]}
+              resizeMode="contain"
             />
           </View>
-          
+
           <View style={styles.infoContainer}>
             <Text style={styles.title}>{product.product_name || product.name}</Text>
-            
+
             <View style={styles.priceRow}>
               <Text style={styles.price}>{formatCurrency(displayPrice)}</Text>
               {originalPrice > displayPrice && (
                 <Text style={styles.originalPrice}>{formatCurrency(originalPrice)}</Text>
               )}
             </View>
-            
+
             <View style={styles.divider} />
-            
+
             {product.variants && product.variants.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Tùy chọn phiên bản</Text>
@@ -180,7 +197,7 @@ export default function ProductDetailScreen() {
                     const isSelected = selectedVariantId === v.variant_id;
                     const vName = [v.color_name, v.ram_gb ? `${v.ram_gb}GB` : null, v.storage_gb ? `${v.storage_gb}GB` : null].filter(Boolean).join(' - ');
                     return (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         key={v.variant_id}
                         style={[styles.variantBtn, isSelected && styles.variantBtnActive]}
                         onPress={() => setSelectedVariantId(v.variant_id)}
@@ -206,9 +223,9 @@ export default function ProductDetailScreen() {
               </View>
             </View>
             <Text style={styles.stockText}>Kho: {stockQty} sản phẩm</Text>
-            
+
             <View style={styles.divider} />
-            
+
             <Text style={styles.sectionTitle}>Cấu hình nổi bật</Text>
             <View style={styles.specBox}>
               {product.os ? <Text style={styles.specText}>• Hệ điều hành: {product.os}</Text> : null}
@@ -227,17 +244,17 @@ export default function ProductDetailScreen() {
           </View>
           <View style={{ height: 40 }} />
         </ScrollView>
-        
+
         <View style={styles.bottomBar}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.cartIconBtn}
             onPress={() => router.push('/cart')}
           >
             <Ionicons name="cart-outline" size={28} color={Colors.light.primary} />
             <Text style={styles.cartIconText}>Giỏ hàng</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.addToCartBtnWrapper}
             activeOpacity={0.8}
             onPress={handleAddToCart}
@@ -267,50 +284,50 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   image: { backgroundColor: Colors.light.white },
-  infoContainer: { 
-    padding: Spacing.lg, 
-    backgroundColor: Colors.light.backgroundElement, 
+  infoContainer: {
+    padding: Spacing.lg,
+    backgroundColor: Colors.light.backgroundElement,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     marginTop: -Radius.xl,
     ...Shadows.medium,
   },
-  title: { 
-    fontSize: 20, 
-    fontWeight: '800', 
-    color: Colors.light.text, 
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.light.text,
     marginBottom: Spacing.md,
     lineHeight: 28,
   },
-  priceRow: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-end', 
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
-  price: { 
-    fontSize: 24, 
-    fontWeight: '900', 
-    color: Colors.light.danger, 
-    marginRight: Spacing.md 
+  price: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: Colors.light.danger,
+    marginRight: Spacing.md
   },
-  originalPrice: { 
-    fontSize: 16, 
-    color: Colors.light.textSecondary, 
-    textDecorationLine: 'line-through', 
-    marginBottom: 4 
+  originalPrice: {
+    fontSize: 16,
+    color: Colors.light.textSecondary,
+    textDecorationLine: 'line-through',
+    marginBottom: 4
   },
-  divider: { 
-    height: 1, 
-    backgroundColor: Colors.light.border, 
-    marginVertical: Spacing.lg 
+  divider: {
+    height: 1,
+    backgroundColor: Colors.light.border,
+    marginVertical: Spacing.lg
   },
   section: {
     marginBottom: Spacing.md,
   },
-  sectionTitle: { 
-    fontSize: 16, 
-    fontWeight: '800', 
-    marginBottom: Spacing.sm, 
-    color: Colors.light.text 
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: Spacing.sm,
+    color: Colors.light.text
   },
   variantsContainer: {
     flexDirection: 'row',
@@ -364,14 +381,14 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     textAlign: 'right',
   },
-  specBox: { 
-    backgroundColor: Colors.light.backgroundSelected, 
-    padding: Spacing.md, 
-    borderRadius: Radius.md 
+  specBox: {
+    backgroundColor: Colors.light.backgroundSelected,
+    padding: Spacing.md,
+    borderRadius: Radius.md
   },
-  specText: { 
-    fontSize: 14, 
-    color: Colors.light.text, 
+  specText: {
+    fontSize: 14,
+    color: Colors.light.text,
     marginBottom: 6,
     lineHeight: 22,
   },
@@ -380,11 +397,11 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     lineHeight: 24,
   },
-  bottomBar: { 
+  bottomBar: {
     flexDirection: 'row',
-    padding: Spacing.lg, 
-    backgroundColor: Colors.light.backgroundElement, 
-    borderTopWidth: 1, 
+    padding: Spacing.lg,
+    backgroundColor: Colors.light.backgroundElement,
+    borderTopWidth: 1,
     borderTopColor: Colors.light.border,
     paddingBottom: Platform.OS === 'ios' ? 32 : Spacing.lg,
     alignItems: 'center',
@@ -401,16 +418,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '600'
   },
-  addToCartBtnWrapper: { 
-    flex: 1, 
+  addToCartBtnWrapper: {
+    flex: 1,
     borderRadius: Radius.pill,
     overflow: 'hidden',
     ...Shadows.medium,
   },
-  addToCartBtn: { 
-    height: 56, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
+  addToCartBtn: {
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   btnText: { color: Colors.light.white, fontSize: 16, fontWeight: '800' },
 });

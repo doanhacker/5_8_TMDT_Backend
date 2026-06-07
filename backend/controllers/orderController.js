@@ -321,6 +321,124 @@ const orderController = {
             console.error('Lỗi khi hủy đơn hàng:', error.message);
             res.status(500).json({ success: false, message: error.message || 'Lỗi máy chủ nội bộ khi hủy đơn hàng' });
         }
+    },
+
+    /**
+     * API: Thống kê doanh thu theo thời gian (GET /api/orders/revenue/stats)
+     * req.query: { startDate: YYYY-MM-DD, endDate: YYYY-MM-DD, productId?: number }
+     */
+    getRevenueStats: async (req, res) => {
+        try {
+            const { startDate, endDate, productId } = req.query;
+
+            if (!startDate || !endDate) {
+                return res.status(400).json({ success: false, message: 'Vui lòng cung cấp startDate và endDate.' });
+            }
+
+            // Regex để validate format YYYY-MM-DD
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+                return res.status(400).json({ success: false, message: 'Định dạng ngày không hợp lệ. Vui lòng dùng định dạng YYYY-MM-DD.' });
+            }
+
+            const parsedProductId = productId ? parseInt(productId, 10) : null;
+            const stats = await Order.getRevenueStatistics(startDate, endDate, parsedProductId);
+
+            // Generate full date range to prevent broken lines in charts
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const dateMap = new Map();
+            
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                dateMap.set(dateStr, {
+                    date: dateStr,
+                    revenue: 0,
+                    orders_count: 0,
+                    quantity_sold: 0
+                });
+            }
+
+            let totalRevenue = 0;
+            let totalOrders = 0;
+            let totalQuantity = 0;
+
+            stats.forEach(item => {
+                let dateStr = item.date;
+                // Handle Date object or string from DB
+                if (item.date instanceof Date) {
+                    // Cần cộng thêm offset timezone để không bị lùi ngày
+                    const d = new Date(item.date);
+                    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                    dateStr = d.toISOString().split('T')[0];
+                } else if (typeof item.date === 'string') {
+                    dateStr = item.date.split('T')[0];
+                }
+
+                if (dateMap.has(dateStr)) {
+                    const mapped = dateMap.get(dateStr);
+                    mapped.revenue = Number(item.revenue) || 0;
+                    mapped.orders_count = Number(item.orders_count) || 0;
+                    mapped.quantity_sold = Number(item.quantity_sold) || 0;
+                    
+                    totalRevenue += mapped.revenue;
+                    totalOrders += mapped.orders_count;
+                    totalQuantity += mapped.quantity_sold;
+                }
+            });
+
+            res.status(200).json({
+                success: true,
+                message: 'Lấy thống kê doanh thu thành công',
+                data: {
+                    summary: {
+                        totalRevenue,
+                        totalOrders,
+                        totalQuantity
+                    },
+                    chartData: Array.from(dateMap.values())
+                }
+            });
+        } catch (error) {
+            console.error('Lỗi khi thống kê doanh thu:', error);
+            res.status(500).json({ success: false, message: 'Lỗi máy chủ nội bộ khi thống kê doanh thu' });
+        }
+    },
+
+    /**
+     * API: Lấy top sản phẩm bán chạy (GET /api/orders/top-products)
+     * req.query: { startDate: YYYY-MM-DD, endDate: YYYY-MM-DD, limit?: number }
+     */
+    getTopProducts: async (req, res) => {
+        try {
+            const { startDate, endDate, limit } = req.query;
+
+            if (!startDate || !endDate) {
+                return res.status(400).json({ success: false, message: 'Vui lòng cung cấp startDate và endDate.' });
+            }
+
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+                return res.status(400).json({ success: false, message: 'Định dạng ngày không hợp lệ. Vui lòng dùng định dạng YYYY-MM-DD.' });
+            }
+
+            const parsedLimit = limit ? parseInt(limit, 10) : 10;
+            const topProducts = await Order.getTopSellingProducts(startDate, endDate, parsedLimit);
+
+            res.status(200).json({
+                success: true,
+                message: 'Lấy danh sách top sản phẩm thành công',
+                data: topProducts.map(p => ({
+                    ...p,
+                    revenue: Number(p.revenue) || 0,
+                    quantity_sold: Number(p.quantity_sold) || 0,
+                    total_stock: Number(p.total_stock) || 0
+                }))
+            });
+        } catch (error) {
+            console.error('Lỗi lấy top sản phẩm:', error);
+            res.status(500).json({ success: false, message: 'Lỗi máy chủ nội bộ khi lấy top sản phẩm' });
+        }
     }
 };
 

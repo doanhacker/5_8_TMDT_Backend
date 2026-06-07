@@ -8,6 +8,13 @@ router.post('/', orderController.createOrder);
 // GET danh sách đơn hàng (Admin xem tất cả, User xem của mình)
 router.get('/', orderController.getAllOrders);
 
+// GET thống kê doanh thu (Admin)
+// CẦN ĐẶT TRƯỚC router.get('/:id') ĐỂ KHÔNG BỊ NHẦM LÀ ID
+router.get('/revenue/stats', orderController.getRevenueStats);
+
+// GET top sản phẩm bán chạy
+router.get('/top-products', orderController.getTopProducts);
+
 // GET chi tiết đơn hàng
 router.get('/:id', orderController.getOrderById);
 

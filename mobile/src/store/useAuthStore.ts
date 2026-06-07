@@ -1,17 +1,36 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-// Safe memory storage to prevent crashes in Expo Go
-const memoryStorageItems: Record<string, string> = {};
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
-const safeStorage = {
-  getItem: (name: string) => {
-    return memoryStorageItems[name] || null;
+const customStorage = {
+  getItem: async (name: string) => {
+    try {
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(name);
+      }
+      return await SecureStore.getItemAsync(name);
+    } catch (e) {
+      return null;
+    }
   },
-  setItem: (name: string, value: string) => {
-    memoryStorageItems[name] = value;
+  setItem: async (name: string, value: string) => {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(name, value);
+      } else {
+        await SecureStore.setItemAsync(name, value);
+      }
+    } catch (e) {}
   },
-  removeItem: (name: string) => {
-    delete memoryStorageItems[name];
+  removeItem: async (name: string) => {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(name);
+      } else {
+        await SecureStore.deleteItemAsync(name);
+      }
+    } catch (e) {}
   },
 };
 
@@ -47,7 +66,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'techmart-auth-storage',
-      storage: createJSONStorage(() => safeStorage),
+      storage: createJSONStorage(() => customStorage),
     }
   )
 );

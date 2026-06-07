@@ -8,7 +8,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function AddressesScreen() {
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [addresses, setAddresses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -23,8 +23,12 @@ export default function AddressesScreen() {
   const [province, setProvince] = useState('');
 
   useEffect(() => {
-    fetchAddresses();
-  }, []);
+    if (token) {
+      fetchAddresses();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
 
   const fetchAddresses = async () => {
     try {
@@ -33,7 +37,7 @@ export default function AddressesScreen() {
         setAddresses(res.data.addresses || res.data);
       }
     } catch (error) {
-      console.error('Lỗi tải sổ địa chỉ', error);
+      console.log('Lỗi tải sổ địa chỉ (Chưa đăng nhập)');
     } finally {
       setLoading(false);
     }
@@ -90,6 +94,25 @@ export default function AddressesScreen() {
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.light.primary} />
       </View>
+    );
+  }
+
+  if (!user || !token) {
+    return (
+      <>
+        <Stack.Screen options={{ 
+          title: 'Sổ địa chỉ',
+          headerStyle: { backgroundColor: Colors.light.backgroundElement },
+          headerTintColor: Colors.light.text,
+        }} />
+        <View style={styles.center}>
+          <Ionicons name="lock-closed-outline" size={64} color={Colors.light.textSecondary} />
+          <Text style={styles.emptyText}>Vui lòng đăng nhập để xem sổ địa chỉ</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={() => require('expo-router').router.push('/auth/login')}>
+            <Text style={styles.loginBtnText}>Đăng nhập ngay</Text>
+          </TouchableOpacity>
+        </View>
+      </>
     );
   }
 
@@ -206,7 +229,9 @@ const styles = StyleSheet.create({
   deleteBtn: { flexDirection: 'row', alignItems: 'center', padding: 4 },
   deleteText: { fontSize: 14, color: Colors.light.danger, marginLeft: 4, fontWeight: '600' },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 40 },
-  emptyText: { fontSize: 16, color: Colors.light.textSecondary, marginTop: Spacing.md },
+  emptyText: { fontSize: 16, color: Colors.light.textSecondary, marginTop: Spacing.md, marginBottom: Spacing.xl },
+  loginBtn: { backgroundColor: Colors.light.primary, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: Radius.pill },
+  loginBtnText: { color: Colors.light.white, fontWeight: '700', fontSize: 16 },
   addBtnWrapper: { position: 'absolute', bottom: Spacing.xl, left: Spacing.lg, right: Spacing.lg, borderRadius: Radius.pill, overflow: 'hidden', ...Shadows.medium },
   addBtn: { height: 56, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   addBtnText: { color: Colors.light.white, fontSize: 16, fontWeight: '800' },
