@@ -219,22 +219,27 @@ export default function Cart() {
     }
 
     const resolveVariantId = async (item) => {
-      if (item.variantId) return Number(item.variantId)
+      if (item.variantId !== undefined && item.variantId !== null && item.variantId !== 'null' && item.variantId !== 'undefined' && !isNaN(Number(item.variantId)) && Number(item.variantId) > 0) {
+        return Number(item.variantId)
+      }
 
       const cartIdParts = String(item.id || '').split('-')
-      if (cartIdParts.length > 1 && Number(cartIdParts[1])) {
-        return Number(cartIdParts[1])
+      if (cartIdParts.length > 1) {
+        const parsedVariant = Number(cartIdParts[1])
+        if (!isNaN(parsedVariant) && parsedVariant > 0) {
+          return parsedVariant
+        }
       }
 
       const productId = item.productId || cartIdParts[0]
-      if (!productId) {
-        throw new Error(`Không thể xác định phiên bản cho sản phẩm ${item.name}`)
+      if (!productId || isNaN(Number(productId)) || Number(productId) <= 0) {
+        throw new Error(`Không thể xác định phiên bản cho sản phẩm ${item.name || 'chưa rõ tên'}`)
       }
 
       const detailResponse = await productApi.getProductById(productId)
       const fallbackVariantId = detailResponse?.data?.variants?.[0]?.variant_id
       if (!fallbackVariantId) {
-        throw new Error(`Sản phẩm ${item.name} chưa có phiên bản khả dụng để đặt hàng`)
+        throw new Error(`Sản phẩm ${item.name || ''} chưa có phiên bản khả dụng để đặt hàng`)
       }
 
       return Number(fallbackVariantId)
