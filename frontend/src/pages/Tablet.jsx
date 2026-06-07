@@ -139,20 +139,20 @@ function formatCurrency(value) {
 }
 
 const mapApiProductToTabletCard = (product) => ({
-  id: Number(product?.id),
-  name: product?.name || "Tablet",
-  brand: product?.brand || "Unknown",
-  price: Number(product?.price || 0),
-  oldPrice: Number(product?.oldPrice || product?.price || 0),
+  id: Number(product?.product_id || product?.id),
+  name: product?.product_name || product?.name || "Tablet",
+  brand: product?.brand_name || product?.brand || "Unknown",
+  price: Number(product?.representative_discount_price || product?.min_price || product?.price || 0),
+  oldPrice: Number(product?.representative_original_price || product?.max_price || product?.oldPrice || product?.price || 0),
   rating: 4.7,
-  sold: String(product?.sold || "0"),
-  storage: product?.storage || "Đang cập nhật",
-  display: product?.screenSize || "Đang cập nhật",
-  chipset: product?.cpu || "Đang cập nhật",
-  battery: product?.batteryCapacityMah ? `${product.batteryCapacityMah} mAh` : "Đang cập nhật",
-  camera: product?.deviceSpecificSpecs?.rear_camera_mp ? `${product.deviceSpecificSpecs.rear_camera_mp}MP` : "Đang cập nhật",
-  image: product?.image || PRODUCT_FALLBACK_IMAGE,
-  feature: (Array.isArray(product?.features) && product.features[0]) || "Sản phẩm chính hãng",
+  sold: String(product?.total_stock_quantity || product?.sold || "0"),
+  storage: product?.representative_storage_gb ? `${product.representative_storage_gb}GB` : (product?.storage || "Đang cập nhật"),
+  display: product?.screen_size ? `${product.screen_size} inch` : (product?.screenSize || "Đang cập nhật"),
+  chipset: product?.representative_cpu_name || product?.cpu || "Đang cập nhật",
+  battery: product?.battery_capacity_mah ? `${product.battery_capacity_mah} mAh` : (product?.batteryCapacityMah ? `${product.batteryCapacityMah} mAh` : "Đang cập nhật"),
+  camera: product?.device_specific_specs?.rear_camera_mp ? `${product.device_specific_specs.rear_camera_mp}MP` : (product?.deviceSpecificSpecs?.rear_camera_mp ? `${product.deviceSpecificSpecs.rear_camera_mp}MP` : "Đang cập nhật"),
+  image: product?.primary_product_image_url || product?.image || PRODUCT_FALLBACK_IMAGE,
+  feature: (Array.isArray(product?.features) && product.features[0]) || product?.highlight_features || "Sản phẩm chính hãng",
 })
 
 export default function TabletPage() {

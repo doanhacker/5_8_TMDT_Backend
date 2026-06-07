@@ -238,11 +238,11 @@ export default function SmartwatchPage() {
 
   const handleAddToCart = (product) => {
     addToCart({
-      product_id: product.id,
-      product_name: product.name,
+      id: product.id,
+      name: product.name,
       price: product.price,
       quantity: 1,
-      image_url: product.image,
+      image: product.image,
     })
   }
 
